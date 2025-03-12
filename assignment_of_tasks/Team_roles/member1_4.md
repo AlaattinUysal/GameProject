@@ -1,0 +1,18 @@
+## Üye 1 ve Üye 4: Oyuncu ve Görselleştirme Ekibi (Ortak Çalışma)
+- **Class’lar:**
+  - **Üye 1:** `Player`, `Inventory`, `SoundManager`
+  - **Üye 4:** `Renderer`, `Camera`, `HUD`, `LightingSystem`, `ParticleSystem`
+- **Görevler:**
+  - **Üye 1:**
+    - `Player`: Oyuncu hareketi, zıplama, saldırı, enerji yönetimi.
+    - `Inventory`: Eşya toplama ve kullanma sistemi.
+    - `SoundManager`: Ses efektleri (adım, saldırı, hazine açma).
+  - **Üye 4:**
+    - `Renderer`: Sprite’ları ekrana çizer.
+    - `Camera`: Oyuncuyu takip ve efektler.
+    - `HUD`: Enerji barı, coin sayısı gibi arayüz.
+    - `LightingSystem`: Dinamik ışık efektleri.
+    - `ParticleSystem`: Görsel efektler (kıvılcımlar, patlamalar).
+- **Asset’ler:**
+  - **Üye 1:** `assets/player/hero_idle.png`, `assets/items/coin.png`, `assets/sounds/step.wav`
+  - **Üye 4:** `assets/ui/health_bar.png`, `assets/effects/light_gradient.png`, `assets/effects/spark.png`
