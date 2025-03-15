@@ -1,0 +1,11 @@
+### Üye 5: Genel Koordinatör, Test Manager ve Mantık Yöneticisi
+- **Tasks:**
+  - Manage `GameEngine` for game flow.
+  - Control `GameState` (start, playing, end).
+  - Build `ScoreSystem` for points.
+  - Adjust `DifficultyScaler` for game challenge.
+  - Create `MiniMap` for level overview.
+  - Design `MenuSystem` for game interface.
+  - **Test Manager:** Test all code and report issues.
+  - **Genel Koordinatör:** Oversee project and team coordination.
+- **Asset’ler:** `assets/ui/map_background.png`, `assets/ui/menu_background.png`
