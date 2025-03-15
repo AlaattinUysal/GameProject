@@ -1,0 +1,15 @@
+### Üye 1 ve Üye 4: Oyuncu ve Görselleştirme Ekibi (Ortak Çalışma)
+- **Tasks:**
+  - **Üye 1:**
+    - Implement `Player` class (movement, jump, attack, energy).
+    - Develop `Inventory` system (item collection and usage).
+    - Add `SoundManager` (step, attack, treasure sounds).
+  - **Üye 4:**
+    - Develop `Renderer` to draw sprites.
+    - Implement `Camera` for player tracking.
+    - Design `HUD` for energy and coin display.
+    - Create `LightingSystem` for dynamic lights.
+    - Build `ParticleSystem` for visual effects.
+- **Asset’ler:**
+  - Üye 1: `assets/player/hero_idle.png`, `assets/items/coin.png`, `assets/sounds/step.wav`
+  - Üye 4: `assets/ui/health_bar.png`, `assets/effects/light_gradient.png`
