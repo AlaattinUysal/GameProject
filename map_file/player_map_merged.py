@@ -9,18 +9,190 @@ pygame.init()
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption('Village Game')
+pygame.display.set_caption('Game')
 clock = pygame.time.Clock()
 FPS = 60
 
-# Load map
-tmx_data = pytmx.load_pygame('levels/frozen_cave/frozen cave.tmx')
-map_width = tmx_data.width * tmx_data.tilewidth
-map_height = tmx_data.height * tmx_data.tileheight
+# Game state and map management
+current_map = "village"  # Starting map
+maps_data = {}  # Cache for loaded maps
+transition_rects = {}  # Transition zones for each map
 
-# Camera settings
-camera_x, camera_y = 0, 0
+# Global variables
 ZOOM_FACTOR = 1.5  # 150% zoom
+camera_x, camera_y = 0, 0
+front_layer_index = 17
+tile_cache = {}
+parallax_factors_x = {}
+parallax_factors_y = {}
+
+def load_map(map_name):
+    """Load a map and extract its data"""
+    global tmx_data, map_width, map_height, collision_rects, spike_rects
+    global transition_rects, parallax_factors_x, parallax_factors_y
+    
+    # If map is already cached, use cached data
+    if map_name in maps_data:
+        map_data = maps_data[map_name]
+        tmx_data = map_data["tmx_data"]
+        map_width = map_data["map_width"]
+        map_height = map_data["map_height"]
+        collision_rects = map_data["collision_rects"]
+        spike_rects = map_data["spike_rects"]
+        transition_rects = map_data["transition_rects"]
+        parallax_factors_x = map_data["parallax_factors_x"]
+        parallax_factors_y = map_data["parallax_factors_y"]
+        return
+    
+    # Clear caches when loading a new map
+    tile_cache.clear()
+    
+    # Only clear player image cache if player exists
+    if 'player' in globals() and hasattr(player, 'scaled_image_cache'):
+        player.scaled_image_cache.clear()
+    
+    # Load the map file
+    map_file = f'levels/{map_name}/{map_name}.tmx'
+    tmx_data = pytmx.load_pygame(map_file)
+    map_width = tmx_data.width * tmx_data.tilewidth
+    map_height = tmx_data.height * tmx_data.tileheight
+    
+    # Extract collision objects
+    collision_rects = []
+    for layer in tmx_data.layers:
+        if isinstance(layer, pytmx.TiledObjectGroup) and layer.name.lower() == "collision":
+            for obj in layer:
+                if hasattr(obj, 'x') and hasattr(obj, 'y'):
+                    rect = pygame.Rect(obj.x, obj.y, obj.width, obj.height)
+                    collision_rects.append(rect)
+    
+    # Extract hazard objects
+    spike_rects = []
+    for layer in tmx_data.layers:
+        if isinstance(layer, pytmx.TiledObjectGroup) and layer.name.lower() == "hazards":
+            for obj in layer:
+                if hasattr(obj, 'x') and hasattr(obj, 'y'):
+                    rect = pygame.Rect(obj.x, obj.y, obj.width, obj.height)
+                    spike_rects.append(rect)
+    
+    # Extract transition zones
+    transition_rects = {}
+    for layer in tmx_data.layers:
+        if isinstance(layer, pytmx.TiledObjectGroup) and layer.name.lower() == "transitions":
+            for obj in layer:
+                if hasattr(obj, 'x') and hasattr(obj, 'y'):
+                    rect = pygame.Rect(obj.x, obj.y, obj.width, obj.height)
+                    # Store transition info
+                    if hasattr(obj, 'properties') and 'target_map' in obj.properties:
+                        transition_info = {
+                            'target_map': obj.properties['target_map'],
+                            'target_spawn': obj.properties.get('target_spawn', 'spawn_point')
+                        }
+                        transition_rects[obj.name] = {
+                            'rect': rect,
+                            'info': transition_info
+                        }
+    
+    # Extract parallax factors
+    update_parallax_factors()
+    
+    # Cache the map data
+    maps_data[map_name] = {
+        "tmx_data": tmx_data,
+        "map_width": map_width,
+        "map_height": map_height,
+        "collision_rects": collision_rects,
+        "spike_rects": spike_rects,
+        "transition_rects": transition_rects,
+        "parallax_factors_x": parallax_factors_x,
+        "parallax_factors_y": parallax_factors_y
+    }
+
+def update_parallax_factors():
+    """Update parallax factors for the current map"""
+    global parallax_factors_x, parallax_factors_y
+    
+    parallax_factors_x = {}
+    parallax_factors_y = {}
+    
+    for layer in tmx_data.layers:
+        if isinstance(layer, pytmx.TiledTileLayer):
+            # Layer properties
+            layer_properties = getattr(layer, 'properties', {})
+            
+            # X axis parallax factor
+            if 'parallax_factor_x' in layer_properties:
+                parallax_factors_x[layer.name] = float(layer_properties['parallax_factor_x'])
+            elif 'parallax_factor' in layer_properties:
+                # Backward compatibility
+                parallax_factors_x[layer.name] = float(layer_properties['parallax_factor'])
+            elif layer.name.startswith('parallax_'):
+                try:
+                    index = int(layer.name.split('_')[1])
+                    parallax_factors_x[layer.name] = max(0.1, 1.0 - (index * 0.1))
+                except (IndexError, ValueError):
+                    parallax_factors_x[layer.name] = 0.5
+            
+            # Y axis parallax factor
+            if 'parallax_factor_y' in layer_properties:
+                parallax_factors_y[layer.name] = float(layer_properties['parallax_factor_y'])
+            elif 'parallax_factor' in layer_properties:
+                # Backward compatibility
+                parallax_factors_y[layer.name] = float(layer_properties['parallax_factor'])
+            elif layer.name.startswith('parallax_'):
+                try:
+                    index = int(layer.name.split('_')[1])
+                    parallax_factors_y[layer.name] = max(0.1, 1.0 - (index * 0.1))
+                except (IndexError, ValueError):
+                    parallax_factors_y[layer.name] = 0.5
+
+def find_spawn_point(spawn_name="spawn_point"):
+    """Find spawn point with given name in the current map"""
+    default_spawn = (250, 1200)  # Default position if no spawn found
+    
+    for layer in tmx_data.layers:
+        if isinstance(layer, pytmx.TiledObjectGroup) and layer.name.lower() == "spawn":
+            for obj in layer:
+                if obj.name.lower() == spawn_name.lower():
+                    return (obj.x, obj.y)
+    
+    # Return default spawn if no match found
+    return default_spawn
+
+def check_map_transitions():
+    """Check if player is in a transition zone, change map if needed"""
+    global current_map, camera_x, camera_y, camera
+    
+    for transition_name, transition_data in transition_rects.items():
+        if player.hitbox.colliderect(transition_data['rect']):
+            target_map = transition_data['info']['target_map']
+            target_spawn = transition_data['info']['target_spawn']
+            
+            if target_map != current_map:
+                # Change map
+                current_map = target_map
+                load_map(current_map)
+                
+                # Move player to target spawn point
+                spawn_pos = find_spawn_point(target_spawn)
+                player.rect.centerx = spawn_pos[0]
+                player.rect.bottom = spawn_pos[1]
+                player.update_hitbox()
+                
+                # Reset player velocity on map change
+                player.y_velocity = 0
+                
+                # Reset camera
+                camera_x = max(0, min(player.rect.centerx - SCREEN_WIDTH//(2*ZOOM_FACTOR), 
+                               map_width - SCREEN_WIDTH//ZOOM_FACTOR))
+                camera_y = max(0, min(player.rect.centery - SCREEN_HEIGHT//(2*ZOOM_FACTOR), 
+                               map_height - SCREEN_HEIGHT//ZOOM_FACTOR))
+                
+                # Create new camera object with new map dimensions
+                camera = Camera(map_width, map_height)
+                return True
+    
+    return False
 
 # Camera class
 class Camera:
@@ -38,32 +210,6 @@ class Camera:
         x = max(-(self.width - SCREEN_WIDTH / ZOOM_FACTOR), min(0, x))
         y = max(-(self.height - SCREEN_HEIGHT / ZOOM_FACTOR), min(0, y))
         self.camera = pygame.Rect(x, y, self.width, self.height)
-
-# Collision objects
-collision_rects = []
-for layer in tmx_data.layers:
-    if isinstance(layer, pytmx.TiledObjectGroup) and layer.name.lower() == "collision":
-        for obj in layer:
-            if hasattr(obj, 'x') and hasattr(obj, 'y'):
-                rect = pygame.Rect(obj.x, obj.y, obj.width, obj.height)
-                collision_rects.append(rect)
-
-# Starting position
-player_spawn = (250, 1200)
-for layer in tmx_data.layers:
-    if isinstance(layer, pytmx.TiledObjectGroup) and layer.name.lower() == "spawn":
-        for obj in layer:
-            if obj.name.lower() == "spawn_point":
-                player_spawn = (obj.x, obj.y)
-
-# Hazard objects
-spike_rects = []
-for layer in tmx_data.layers:
-    if isinstance(layer, pytmx.TiledObjectGroup) and layer.name.lower() == "hazards":
-        for obj in layer:
-            if hasattr(obj, 'x') and hasattr(obj, 'y'):
-                rect = pygame.Rect(obj.x, obj.y, obj.width, obj.height)
-                spike_rects.append(rect)
 
 # Zoom setting function
 def set_zoom(factor):
@@ -90,51 +236,62 @@ class Spritesheet:
         frame_count = sheet_width // frame_width
         return [self.get_image(i, frame_width, frame_height, scale) for i in range(frame_count)]
 
-# Tile cache for improved performance
-tile_cache = {}
-
 def draw_layer(layer, surface, camera_x, camera_y):
     if not isinstance(layer, pytmx.TiledTileLayer):
         return
     
-    # Şu anki zamanı al (animasyonlar için gerekli)
+    # If this is a parallax layer, adjust camera position according to factors
+    adjusted_camera_x = camera_x
+    adjusted_camera_y = camera_y
+    
+    # Apply parallax factor for X axis
+    if layer.name in parallax_factors_x:
+        factor_x = parallax_factors_x[layer.name]
+        adjusted_camera_x *= factor_x
+    
+    # Apply parallax factor for Y axis
+    if layer.name in parallax_factors_y:
+        factor_y = parallax_factors_y[layer.name]
+        adjusted_camera_y *= factor_y
+    
+    # Get current time (required for animations)
     current_time = pygame.time.get_ticks()
     
     # Calculate visible tile range
-    start_x = max(0, int(camera_x / tmx_data.tilewidth))
-    end_x = min(tmx_data.width, int((camera_x + SCREEN_WIDTH) / tmx_data.tilewidth) + 2)
-    start_y = max(0, int(camera_y / tmx_data.tileheight))
-    end_y = min(tmx_data.height, int((camera_y + SCREEN_HEIGHT) / tmx_data.tileheight) + 2)
+    start_x = max(0, int(adjusted_camera_x / tmx_data.tilewidth))
+    end_x = min(tmx_data.width, int((adjusted_camera_x + SCREEN_WIDTH) / tmx_data.tilewidth) + 2)
+    start_y = max(0, int(adjusted_camera_y / tmx_data.tileheight))
+    end_y = min(tmx_data.height, int((adjusted_camera_y + SCREEN_HEIGHT) / tmx_data.tileheight) + 2)
     
-    offset_x = -(camera_x % tmx_data.tilewidth) * ZOOM_FACTOR
-    offset_y = -(camera_y % tmx_data.tileheight) * ZOOM_FACTOR
+    offset_x = -(adjusted_camera_x % tmx_data.tilewidth) * ZOOM_FACTOR
+    offset_y = -(adjusted_camera_y % tmx_data.tileheight) * ZOOM_FACTOR
     
     for x in range(start_x, end_x):
         for y in range(start_y, end_y):
             gid = layer.data[y][x]
             if gid:
-                # Animasyonlu kareleri kontrol et
+                # Check for animated tiles
                 tile_properties = tmx_data.get_tile_properties_by_gid(gid)
                 if tile_properties and 'frames' in tile_properties:
                     frames = tile_properties['frames']
-                    total_duration = sum(frame[1] for frame in frames)  # Tüm karelerin toplam süresi
+                    total_duration = sum(frame[1] for frame in frames)  # Total duration of all frames
                     
                     if frames and total_duration > 0:
-                        elapsed_time = current_time % total_duration  # Döngüde kalan zaman
+                        elapsed_time = current_time % total_duration  # Time in cycle
                         current_frame = 0
                         frame_time = 0
 
-                        # Doğru kareyi bul
+                        # Find the correct frame
                         for frame in frames:
                             frame_time += frame[1]
                             if elapsed_time <= frame_time:
-                                current_frame = frame[0]  # GID'yi direkt kullan
+                                current_frame = frame[0]  # Use GID directly
                                 break
 
-                        # Animasyonlu kare için cache key oluştur
+                        # Create cache key for animated frame
                         cache_key = (current_frame, ZOOM_FACTOR)
                         
-                        # Cache'te yoksa ekle
+                        # Add to cache if not present
                         if cache_key not in tile_cache:
                             tile_image = tmx_data.get_tile_image_by_gid(current_frame)
                             if tile_image:
@@ -143,13 +300,13 @@ def draw_layer(layer, surface, camera_x, camera_y):
                                     (int(tmx_data.tilewidth * ZOOM_FACTOR), int(tmx_data.tileheight * ZOOM_FACTOR))
                                 )
                         
-                        # Ekrana çiz
+                        # Draw to screen
                         if cache_key in tile_cache:
                             screen_x = (x - start_x) * tmx_data.tilewidth * ZOOM_FACTOR + offset_x
                             screen_y = (y - start_y) * tmx_data.tileheight * ZOOM_FACTOR + offset_y
                             surface.blit(tile_cache[cache_key], (screen_x, screen_y))
                 else:
-                    # Normal kareler için mevcut sistemi kullan
+                    # Use existing system for normal tiles
                     cache_key = (gid, ZOOM_FACTOR)
                     if cache_key not in tile_cache:
                         tile_image = tmx_data.get_tile_image_by_gid(gid)
@@ -387,6 +544,9 @@ class Samurai(pygame.sprite.Sprite):
             ground_height = self.ground_check.height * ZOOM_FACTOR
             pygame.draw.rect(surface, (0, 255, 0), (ground_x, ground_y, ground_width, ground_height), 2)
 
+# Load initial map
+load_map(current_map)
+
 # Load spritesheets
 walk_spritesheet = Spritesheet("player sprite sheets/Walk.png")
 idle_spritesheet = Spritesheet("player sprite sheets/Idle.png")
@@ -394,6 +554,9 @@ jump_spritesheet = Spritesheet("player sprite sheets/Jump.png")
 run_spritesheet = Spritesheet("player sprite sheets/Run.png")
 attack1_spritesheet = Spritesheet("player sprite sheets/Attack_1.png")
 attack2_spritesheet = Spritesheet("player sprite sheets/Attack_2.png")
+
+# Find initial spawn point
+player_spawn = find_spawn_point()
 
 # Create player and camera
 player = Samurai(walk_spritesheet, idle_spritesheet, jump_spritesheet, 
@@ -404,10 +567,6 @@ player.on_ground = False
 player.y_velocity = 1
 
 camera = Camera(map_width, map_height)
-
-# Prerender visible layers for performance
-layer_surfaces = {}
-front_layer_index = 17
 
 # FPS font
 font = pygame.font.Font(None, 36)
@@ -465,6 +624,11 @@ while running:
 
     player.move(moving_left, moving_right, running_fast, collision_rects)
     player.update(collision_rects, spike_rects)
+    
+    # Check for map transitions
+    if check_map_transitions():
+        # Skip the rest of this frame if map changed
+        continue
 
     # Update camera with smoothing
     CAMERA_LERP = 0.05
@@ -495,8 +659,8 @@ while running:
     fps_text = font.render(f"FPS: {int(clock.get_fps())}", True, (255, 255, 255))
     screen.blit(fps_text, (10, 10))
     
-    # Show player status
-    player_status = f"Pos: ({int(player.rect.x)}, {int(player.rect.y)}) | Ground: {player.on_ground}"
+    # Show player status and current map
+    player_status = f"Map: {current_map} | Pos: ({int(player.rect.x)}, {int(player.rect.y)}) | Ground: {player.on_ground}"
     status_text = font.render(player_status, True, (255, 255, 255))
     screen.blit(status_text, (10, 50))
     
