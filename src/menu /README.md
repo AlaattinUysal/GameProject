@@ -3,7 +3,7 @@
 ## Proje Yapısı
 
 ```
-game-menu/
+src-menu/
 ├── menu/
 │   ├── init.py         # Makes the menu directory a Python package
 │   ├── constants.py    # Constants (colors, screen dimensions, etc.)
