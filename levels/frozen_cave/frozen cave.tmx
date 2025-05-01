@@ -1003,7 +1003,7 @@
   <object id="160" x="800" y="1088" width="64" height="96"/>
   <object id="161" x="928" y="1088" width="64" height="64"/>
   <object id="163" x="864" y="1088" width="64" height="32"/>
-  <object id="164" x="2272.5" y="192" width="31.5" height="160"/>
+  <object id="164" x="2272.5" y="102" width="31.5" height="250"/>
   <object id="166" x="1008.36" y="704.182" width="31.8182" height="1.5909"/>
   <object id="167" x="2240" y="352" width="32" height="32"/>
   <object id="170" x="2208" y="320" width="32" height="32"/>
