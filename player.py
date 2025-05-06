@@ -1,7 +1,8 @@
 import pygame
 import pytmx
 import sys
-
+import json
+import random
 pygame.mixer.pre_init(44100, -16, 2, 2048)  # Frekans: 44.1kHz, 16-bit, stereo, 2048 buffer
 pygame.mixer.init()
 pygame.init()
@@ -14,10 +15,14 @@ clock = pygame.time.Clock()
 FPS = 60
 # Kod başında global değişkenleri tanımla
 game_over = False
-
-
-
-# Load map
+# Mesaj gösterimi için değişkenler
+show_message = False
+show2_message= False 
+message_timer = 0
+message2_timer = 0
+message_duration = 5 * FPS  # 5 saniye (FPS cinsinden)
+message_text = "K tuşu ile yeni özellik açıldı!"  # Gösterilecek mesaj
+message2_text = "L tuşu ile yeni özellik açıldı!"
 # Game state and map management
 current_map = "village"  # Starting map
 maps_data = {}  # Cache for loaded maps
@@ -53,11 +58,10 @@ class Camera:
         self.camera = pygame.Rect(x, y, self.width, self.height)
 
 def load_map(map_name):
-    """Load a map and extract its data"""
     global tmx_data, map_width, map_height, collision_rects, spike_rects
-    global transition_rects, parallax_factors_x, parallax_factors_y ,health_potion_rects 
-    
-    # If map is already cached, use cached data
+    global transition_rects, parallax_factors_x, parallax_factors_y, health_potions
+
+    # Harita zaten önbellekteyse, önbellekten yükle
     if map_name in maps_data:
         map_data = maps_data[map_name]
         tmx_data = map_data["tmx_data"]
@@ -68,31 +72,30 @@ def load_map(map_name):
         transition_rects = map_data["transition_rects"]
         parallax_factors_x = map_data["parallax_factors_x"]
         parallax_factors_y = map_data["parallax_factors_y"]
+        health_potions = map_data["health_potions"]
         return
-    
-    # Clear caches when loading a new map
+
+    # Önbellekleri temizle
     tile_cache.clear()
-    
-    # Only clear player image cache if player exists
     if 'player' in globals() and hasattr(player, 'scaled_image_cache'):
         player.scaled_image_cache.clear()
-    
-    # Load the map file
+
+    # Harita dosyasını yükle
     map_file = f'levels/{map_name}/{map_name}.tmx'
     tmx_data = pytmx.load_pygame(map_file)
     map_width = tmx_data.width * tmx_data.tilewidth
     map_height = tmx_data.height * tmx_data.tileheight
 
-    """# Extract health potions
-    health_potion_rects = []
+    # Sağlık iksirlerini yükle
+    health_potions = []
     for layer in tmx_data.layers:
         if isinstance(layer, pytmx.TiledObjectGroup) and layer.name.lower() == "items":
             for obj in layer:
                 if hasattr(obj, 'x') and hasattr(obj, 'y') and obj.name.lower() == "health_potion":
-                    rect = pygame.Rect(obj.x, obj.y, obj.width, obj.height)
-                    health_potion_rects.append(rect)"""
-    
-    # Extract collision objects
+                    potion = HealthPotion(obj.x, obj.y)
+                    health_potions.append(potion)
+
+    # Çarpışma nesnelerini yükle
     collision_rects = []
     for layer in tmx_data.layers:
         if isinstance(layer, pytmx.TiledObjectGroup) and layer.name.lower() == "collision":
@@ -100,8 +103,8 @@ def load_map(map_name):
                 if hasattr(obj, 'x') and hasattr(obj, 'y'):
                     rect = pygame.Rect(obj.x, obj.y, obj.width, obj.height)
                     collision_rects.append(rect)
-    
-    # Extract hazard objects
+
+    # Tehlike nesnelerini yükle
     spike_rects = []
     for layer in tmx_data.layers:
         if isinstance(layer, pytmx.TiledObjectGroup) and layer.name.lower() == "hazards":
@@ -109,15 +112,14 @@ def load_map(map_name):
                 if hasattr(obj, 'x') and hasattr(obj, 'y'):
                     rect = pygame.Rect(obj.x, obj.y, obj.width, obj.height)
                     spike_rects.append(rect)
-    
-    # Extract transition zones
+
+    # Geçiş bölgelerini yükle
     transition_rects = {}
     for layer in tmx_data.layers:
         if isinstance(layer, pytmx.TiledObjectGroup) and layer.name.lower() == "transitions":
             for obj in layer:
                 if hasattr(obj, 'x') and hasattr(obj, 'y'):
                     rect = pygame.Rect(obj.x, obj.y, obj.width, obj.height)
-                    # Store transition info
                     if hasattr(obj, 'properties') and 'target_map' in obj.properties:
                         transition_info = {
                             'target_map': obj.properties['target_map'],
@@ -127,11 +129,11 @@ def load_map(map_name):
                             'rect': rect,
                             'info': transition_info
                         }
-    
-    # Extract parallax factors
+
+    # Paralaks faktörlerini güncelle
     update_parallax_factors()
-    
-    # Cache the map data
+
+    # Harita verilerini önbelleğe al
     maps_data[map_name] = {
         "tmx_data": tmx_data,
         "map_width": map_width,
@@ -141,7 +143,7 @@ def load_map(map_name):
         "transition_rects": transition_rects,
         "parallax_factors_x": parallax_factors_x,
         "parallax_factors_y": parallax_factors_y,
-        #"health_potion_rects": health_potion_rects,
+        "health_potions": health_potions,
     }
 
 # Clear tile cache when changing maps
@@ -150,23 +152,22 @@ tile_cache = {}
 class HealthPotion(pygame.sprite.Sprite):
     def __init__(self, x, y):
         pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.image.load("health.png").convert_alpha()  # 32x32 iksir görseli
+        self.image = pygame.image.load("health.png").convert_alpha()
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
         self.collected = False
-    
+
     def draw(self, surface, camera_x, camera_y):
         if self.collected:
             return
-        
         screen_x = (self.rect.x - camera_x) * ZOOM_FACTOR
         screen_y = (self.rect.y - camera_y) * ZOOM_FACTOR
         scaled_width = int(self.rect.width * ZOOM_FACTOR)
         scaled_height = int(self.rect.height * ZOOM_FACTOR)
-        
         scaled_image = pygame.transform.scale(self.image, (scaled_width, scaled_height))
         surface.blit(scaled_image, (screen_x, screen_y))
+
 
 def update_parallax_factors():
     """Update parallax factors for the current map"""
@@ -220,7 +221,7 @@ def find_spawn_point(spawn_name="spawn_point"):
     return default_spawn
 
 def check_map_transitions():
-    global current_map, camera_x, camera_y, camera, health_potions
+    global current_map, camera_x, camera_y, camera, health_potions, show_message,show2_message, message_timer,message2_timer
     
     for transition_name, transition_data in transition_rects.items():
         if player.hitbox.colliderect(transition_data['rect']):
@@ -236,10 +237,14 @@ def check_map_transitions():
                 player.rect.bottom = spawn_pos[1]
                 player.update_hitbox()
                 
-                # İksirleri yeniden oluştur
+                # İksirleri Tiled haritasından yeniden yükle
                 health_potions = []
-                for rect in health_potions:  # Bu satırda hata var, düzeltelim
-                    health_potions.append(HealthPotion(rect.x, rect.y))
+                for layer in tmx_data.layers:
+                    if isinstance(layer, pytmx.TiledObjectGroup) and layer.name.lower() == "items":
+                        for obj in layer:
+                            if hasattr(obj, 'x') and hasattr(obj, 'y') and obj.name.lower() == "health_potion":
+                                potion = HealthPotion(obj.x, obj.y)
+                                health_potions.append(potion)
                 
                 player.y_velocity = 0
                 camera_x = max(0, min(player.rect.centerx - SCREEN_WIDTH//(2*ZOOM_FACTOR), 
@@ -248,7 +253,15 @@ def check_map_transitions():
                                map_height - SCREEN_HEIGHT//ZOOM_FACTOR))
                 
                 camera = Camera(map_width, map_height)
-                # arrows grubu zaten global, sıfırlamaya gerek yok
+                
+                # Frozen Cave'e geçişte mesajı başlat
+                if current_map == "frozen_cave":
+                    show_message = True
+                    message_timer = message_duration
+                if current_map =="cyberpunk":
+                    show2_message = True 
+                    message2_timer = message_duration
+                
                 return True
     
     return False
@@ -370,13 +383,14 @@ def draw_layer(layer, surface, camera_x, camera_y):
 # Samurai (Player) class
 class Samurai(pygame.sprite.Sprite):
     def __init__(self, walk_spritesheet, idle_spritesheet, jump_spritesheet, 
-                 run_spritesheet, attack1_spritesheet, attack2_spritesheet,attack3_spritesheet, 
-                 hurt_spritesheet, death_spritesheet, x, y, scale, speed):
+                 run_spritesheet, attack1_spritesheet, attack2_spritesheet, attack3_spritesheet, 
+                 elixir_spritesheet, hurt_spritesheet, death_spritesheet, pullup_spritesheet, 
+                 x, y, scale, speed):
         pygame.sprite.Sprite.__init__(self)
         self.speed = speed
         self.flip = False
         self.frame_index = 0
-        self.animation_speed = max(1, round(60 / 12))
+        self.animation_speed = max(1, round(60 / 12))  # 12 FPS
         self.update_counter = 0
         self.is_moving = False
         self.is_running = False
@@ -384,23 +398,27 @@ class Samurai(pygame.sprite.Sprite):
         self.is_attacking = False
         self.is_hurt = False
         self.is_dead = False
+        self.is_climbing = False
+        self.climbing_finished = True
+        self.climb_target_y = 0
         self.attack_finished = True
         self.hurt_finished = True
         self.death_finished = False
-        self.jump_power = -10.5
+        self.jump_power = -12 # Zıplama gücü (negatif, yukarı yön)
+        self.jump_cut_factor = 0.5  # Tuş bırakıldığında hız azaltma oranı (0.5 = %50)
         self.y_velocity = 0
         self.gravity = 0.5
         self.max_fall_speed = 10
         self.on_ground = False
         self.sound_triggered = False
         self.last_hit_sound_time = 0
-        self.hit_sound_cooldown = 200
-        self.max_health = 100  # Başlangıç maksimum can
+        self.hit_sound_cooldown = 100
+        self.max_health = 100
         self.health = self.max_health
-        self.potions_collected = 0  # Toplanan iksir sayacı
+        self.potions_collected = 0
         self.attack_damage = 20
         self.enemies_defeated = 0
-        self.power_up_effect_timer = 0  # Görsel efekt için sayaç
+        self.power_up_effect_timer = 0
         self.invincibility_frames = 30
         self.invincibility_counter = 0
         self.jump_count = 0
@@ -410,10 +428,20 @@ class Samurai(pygame.sprite.Sprite):
         self.charged_attack_damage = 40
         self.scaled_image_cache = {}
         self.shot_spritesheet = Spritesheet("player sprite sheets/Shot.png")
+        self.is_collecting_potion = False
+        self.potion_frame_index = 0
+        self.potion_animation_speed = max(1, round(60 / 40))
+        self.potion_update_counter = 0
+        self.is_shooting = False
+        self.shot_finished = True
+        self.shot_cooldown = 0
+        self.max_arrows = 10
+        self.arrow_count = self.max_arrows
 
         # Animasyonlar
         self.walk_frames = walk_spritesheet.get_animation_frames(128, 128, scale)
         self.idle_frames = idle_spritesheet.get_animation_frames(128, 128, scale)
+        self.elixir_frames = elixir_spritesheet.get_animation_frames(128, 128, scale)
         self.jump_frames = jump_spritesheet.get_animation_frames(128, 128, scale)
         self.run_frames = run_spritesheet.get_animation_frames(128, 128, scale)
         self.attack1_frames = attack1_spritesheet.get_animation_frames(128, 128, scale)[:-1]
@@ -422,13 +450,7 @@ class Samurai(pygame.sprite.Sprite):
         self.hurt_frames = hurt_spritesheet.get_animation_frames(128, 128, scale)
         self.death_frames = death_spritesheet.get_animation_frames(128, 128, scale)
         self.shot_frames = self.shot_spritesheet.get_animation_frames(128, 128, scale)
-
-
-        self.is_shooting = False
-        self.shot_finished = True
-        self.shot_cooldown = 0  # Ok atma bekleme süresi
-        self.max_arrows = 10  # Maksimum ok sayısı (isteğe bağlı limit)
-        self.arrow_count = self.max_arrows  # Mevcut ok sayısı
+        self.pullup_frames = pullup_spritesheet.get_animation_frames(128, 128, scale)  # Yeni pull-up animasyonu
 
         self.image = self.idle_frames[0]
         self.rect = self.image.get_rect()
@@ -443,6 +465,211 @@ class Samurai(pygame.sprite.Sprite):
         self.update_hitbox()
         self.attack_hitbox = pygame.Rect(0, 0, 60, 40)
 
+        # Tırmanma için tutma alanı (grab area)
+        self.grab_area = pygame.Rect(0, 0, self.hitbox.width * 1.2, 20)
+        self.update_grab_area()
+
+    def update_grab_area(self):
+        """Tutma alanını güncelle (karakterin üst kısmında bir alan)"""
+        self.grab_area.midbottom = (self.hitbox.centerx, self.hitbox.top - 5)
+
+    def check_wall_grab(self, collision_rects):
+        """Duvarı tutup tırmanma kontrolü"""
+        if self.is_climbing or self.is_hurt or self.is_dead or self.on_ground:
+            return None
+
+        self.update_grab_area()
+        for rect in collision_rects:
+            if self.grab_area.colliderect(rect):
+                # Duvarın üst kenarını bul
+                wall_top = rect.top
+                # Duvarın hangi tarafında olduğumuzu kontrol et
+                if self.flip:  # Sol tarafa bakıyor
+                    if self.hitbox.left <= rect.right and self.hitbox.right > rect.right:
+                        return wall_top, rect
+                else:  # Sağ tarafa bakıyor
+                    if self.hitbox.right >= rect.left and self.hitbox.left < rect.left:
+                        return wall_top, rect
+        return None
+
+    def start_climbing(self, wall_top, wall_rect):
+        """Tırmanmayı başlat"""
+        self.is_climbing = True
+        self.climbing_finished = False
+        self.frame_index = 0
+        self.update_counter = 0
+        self.y_velocity = 0  # Yerçekimini geçici olarak sıfırla
+        self.climb_target_y = wall_top - self.rect.height  # Hedef yükseklik
+        # Karakteri duvara hizala
+        if self.flip:
+            self.rect.right = wall_rect.right
+        else:
+            self.rect.left = wall_rect.left
+        self.update_hitbox()
+
+    def update_climbing(self):
+        """Tırmanma sürecini güncelle"""
+        if not self.is_climbing:
+            return
+
+        # Animasyon oynarken karakteri yavaşça yukarı taşı
+        climb_speed = (self.climb_target_y - self.rect.bottom) / len(self.pullup_frames)
+        self.rect.y += climb_speed
+        self.update_hitbox()
+
+    def update_animation(self, arrow_group=None):
+        self.update_counter += 1
+        current_speed = self.animation_speed + 3 if not (self.is_moving or self.is_attacking or self.is_jumping or self.is_hurt or self.is_dead or self.is_shooting or self.is_climbing) else self.animation_speed
+
+        # Hasar animasyonu en yüksek önceliğe sahip
+        if self.is_hurt:
+            frames = self.hurt_frames
+            if self.update_counter >= current_speed:
+                self.update_counter = 0
+                if self.frame_index >= len(frames):
+                    self.is_hurt = False
+                    self.hurt_finished = True
+                    self.frame_index = 0
+                else:
+                    self.image = frames[self.frame_index]
+                    self.frame_index += 1
+            return
+
+        # Ölüm animasyonu ikinci öncelik
+        if self.is_dead:
+            frames = self.death_frames
+            if self.update_counter >= current_speed:
+                self.update_counter = 0
+                if self.frame_index >= len(frames) - 1:
+                    self.frame_index = len(frames) - 1
+                    self.death_finished = True
+                else:
+                    self.image = frames[self.frame_index]
+                    self.frame_index += 1
+            return
+
+        # Diğer animasyonlar sadece hasar alınmadığında oynar
+        if self.update_counter < current_speed:
+            return
+
+        self.update_counter = 0
+
+        
+         # İksir toplama animasyonu (hareket durumlarından bağımsız, yüksek öncelik)
+        if self.is_collecting_potion:
+            self.potion_update_counter += 1
+            if self.potion_update_counter >= self.potion_animation_speed:
+                self.potion_update_counter = 0
+                self.potion_frame_index += 1
+                if self.potion_frame_index >= len(self.elixir_frames):
+                    self.is_collecting_potion = False
+                    self.potion_frame_index = 0
+                    self.frame_index = 0
+                else:
+                    self.image = self.elixir_frames[self.potion_frame_index]
+                    self.frame_index = self.potion_frame_index
+            return
+
+        # Tırmanma animasyonu
+        if self.is_climbing:
+            frames = self.pullup_frames
+            if self.frame_index >= len(frames):
+                self.is_climbing = False
+                self.climbing_finished = True
+                self.frame_index = 0
+                self.rect.bottom = self.climb_target_y
+                self.update_hitbox()
+            else:
+                self.image = frames[self.frame_index]
+                self.frame_index += 1
+        # Ok atma animasyonu
+        elif self.is_shooting:
+            frames = self.shot_frames
+            if self.frame_index >= len(frames):
+                self.is_shooting = False
+                self.shot_finished = True
+                self.frame_index = 0
+                if arrow_group is not None:
+                    direction = 1 if not self.flip else -1
+                    arrow_x = self.rect.centerx + (40 * direction)
+                    arrow_y = self.rect.centery - 10
+                    new_arrow = Arrow(arrow_x, arrow_y, direction)
+                    arrow_group.add(new_arrow)
+            else:
+                self.image = frames[self.frame_index]
+                self.frame_index += 1
+        # Saldırı animasyonu
+        elif self.is_attacking:
+            frames = self.current_attack_frames
+            if self.frame_index >= len(frames):
+                self.is_attacking = False
+                self.attack_finished = True
+                self.frame_index = 0
+                self.sound_triggered = False
+            else:
+                self.image = frames[self.frame_index]
+                self.frame_index += 1
+        # Zıplama animasyonu
+        elif self.is_jumping:
+            frames = self.jump_frames
+            if self.frame_index < len(frames) - 1:
+                self.frame_index += 1
+                self.image = frames[self.frame_index]
+        # Koşma animasyonu
+        elif self.is_running:
+            frames = self.run_frames
+            self.frame_index = (self.frame_index + 1) % len(frames)
+            self.image = frames[self.frame_index]
+        # Yürüme animasyonu
+        elif self.is_moving:
+            frames = self.walk_frames
+            self.frame_index = (self.frame_index + 1) % len(frames)
+            self.image = frames[self.frame_index]
+        # Boşta animasyonu
+        else:
+            frames = self.idle_frames if not self.is_collecting_potion else self.elixir_frames
+            self.frame_index = (self.frame_index + 1) % len(frames)
+            self.image = frames[self.frame_index]
+
+
+    def update(self, collision_rects, spike_rects, enemies, arrow_group, dt):
+        if self.is_dead and self.death_finished:
+            return
+        if self.invincibility_counter > 0:
+            self.invincibility_counter -= 1
+
+        # Tırmanma güncellemesi
+        if self.is_climbing:
+            self.update_climbing()
+        else:
+            self.check_on_ground(collision_rects)
+            for spike_rect in spike_rects:
+                if self.hitbox.colliderect(spike_rect) and self.invincibility_counter <= 0:
+                    self.get_hit(10)
+            self.check_hit_enemies(enemies)
+            self.y_velocity += self.gravity * dt * 60
+            if self.y_velocity > self.max_fall_speed:
+                self.y_velocity = self.max_fall_speed
+            self.handle_collisions(0, self.y_velocity, collision_rects)
+
+        if self.shot_cooldown > 0:
+            self.shot_cooldown -= 1
+        self.update_animation(arrow_group)
+        if self.is_charging:
+            self.charge_time += 1
+
+    def collect_potion(self):
+        self.is_collecting_potion = True
+        self.potion_frame_index = 0
+        self.potion_update_counter = 0
+        self.potions_collected += 1
+        self.health = min(self.health + 50, self.max_health)
+        print(f"İksir toplandı! +50 can, Toplam can: {self.health}/{self.max_health}")
+        potion_sound = pygame.mixer.Sound("sounds/potion.wav")
+        pygame.mixer.Channel(1).play(potion_sound)
+        if self.potions_collected % 3 == 0:
+            self.increase_max_health(20)
+
     def increase_max_health(self, amount=20):
         """Maksimum canı artırır ve mevcut canı günceller"""
         self.max_health += amount
@@ -450,60 +677,19 @@ class Samurai(pygame.sprite.Sprite):
         self.power_up_effect_timer = 60  # 1 saniye parlama efekti
         print(f"Maksimum can artırıldı! Yeni maksimum can: {self.max_health}")
 
-    def collect_potion(self):
-        """İksir toplandığında çağrılacak metod"""
-        self.potions_collected += 1
-        self.health = min(self.health + 50, self.max_health)  # Her iksir 50 can versin
-        print(f"İksir toplandı! +50 can, Toplam can: {self.health}/{self.max_health}")
-        potion_sound = pygame.mixer.Sound("sounds/potion.wav")
-        pygame.mixer.Channel(1).play(potion_sound)
-        if self.potions_collected % 3 == 0:  # Her 3 iksirde maksimum can artışı
-            self.increase_max_health(20)
-
     def increase_attack_damage(self, amount=5):
         """Saldırı hasarını artırır"""
         self.attack_damage += amount
         self.power_up_effect_timer = 60  # 1 saniye efekt
         print(f"Saldırı hasarı artırıldı! Yeni hasar: {self.attack_damage}")
 
-    def jump(self):
-        """Çift zıplama özelliği"""
-        if not self.is_attacking and not self.is_hurt and not self.is_dead:
-            if self.on_ground or self.jump_count < self.max_jumps:
-                self.is_jumping = True
-                self.y_velocity = self.jump_power
-                self.frame_index = 0
-                self.update_counter = 0
-                self.jump_count += 1
-                if not self.on_ground:
-                    print("Çift zıplama kullanıldı!")
-            if self.on_ground:
-                self.jump_count = 1  # Yerdeyken ilk zıplama
-
-    def attack(self, attack_type):
-        """Güçlü saldırı özelliği"""
-        if self.is_attacking or self.is_hurt or self.is_dead:
-            print("Saldırı engellendi: is_attacking =", self.is_attacking, "is_hurt =", self.is_hurt, "is_dead =", self.is_dead)
-            return
-        print("Saldırı başladı, attack_type:", attack_type)
-        self.is_attacking = True
-        self.attack_finished = False
-        self.frame_index = 0
-        self.update_counter = 0
-        self.sound_triggered = False
-        if attack_type == 1:
-            self.current_attack_frames = self.attack1_frames
-            if self.is_charging and self.charge_time >= 30:  # 0.5 saniye şarj
-                self.attack_damage = self.charged_attack_damage
-                print("Güçlü saldırı kullanıldı!")
-            else:
-                self.attack_damage = 20  # Normal hasar
-        else:
-            self.current_attack_frames = self.attack2_frames
-
     def shoot(self, arrow_group):
-        if self.is_shooting or self.is_hurt or self.is_dead or self.shot_cooldown > 0 or self.arrow_count <= 0:
-            print(f"Ok atılamadı: is_shooting={self.is_shooting}, is_hurt={self.is_hurt}, is_dead={self.is_dead}, shot_cooldown={self.shot_cooldown}, arrow_count={self.arrow_count}")
+        # Hasar alınıyorsa veya ölü ise ok atamaz
+        if self.is_hurt or self.is_dead:
+            print(f"Ok atılamadı: is_hurt={self.is_hurt}, is_dead={self.is_dead}")
+            return
+        if self.is_shooting or self.shot_cooldown > 0 or self.arrow_count <= 0:
+            print(f"Ok atılamadı: is_shooting={self.is_shooting}, shot_cooldown={self.shot_cooldown}, arrow_count={self.arrow_count}")
             return
         if self.is_running or self.is_jumping or self.is_moving or self.is_attacking:
             print("Ok atılamadı: Karakter koşuyor, zıplıyor, hareket ediyor veya saldırıyor!")
@@ -515,6 +701,50 @@ class Samurai(pygame.sprite.Sprite):
         self.update_counter = 0
         self.shot_cooldown = 30
         self.arrow_count -= 1
+
+    def attack(self, attack_type):
+        # Hasar alınıyorsa veya ölü ise saldıramaz
+        if self.is_hurt or self.is_dead:
+            print(f"Saldırı engellendi: is_hurt={self.is_hurt}, is_dead={self.is_dead}")
+            return
+        if self.is_attacking:
+            print("Saldırı engellendi: is_attacking =", self.is_attacking)
+            return
+        print("Saldırı başladı, attack_type:", attack_type)
+        self.is_attacking = True
+        self.attack_finished = False
+        self.frame_index = 0
+        self.update_counter = 0
+        self.sound_triggered = False
+        if attack_type == 1:
+            self.current_attack_frames = self.attack1_frames
+            if self.is_charging and self.charge_time >= 30:
+                self.attack_damage = self.charged_attack_damage
+                print("Güçlü saldırı kullanıldı!")
+            else:
+                self.attack_damage = 20
+        else:
+            self.current_attack_frames = self.attack2_frames
+
+    def jump(self):
+        """Zıplama işlemini başlatır"""
+        if self.is_hurt or self.is_dead:
+            print(f"Zıplama engellendi: is_hurt={self.is_hurt}, is_dead={self.is_dead}")
+            return
+        if self.is_attacking or not self.on_ground:
+            return
+        self.is_jumping = True
+        self.y_velocity = self.jump_power  # Tam zıplama gücü
+        self.frame_index = 0
+        self.update_counter = 0
+        print("Zıplama başladı!")
+
+    def release_jump(self):
+        """Zıplama tuşu bırakıldığında hızı azaltır (jump cut)"""
+        if self.is_jumping and self.y_velocity < 0:  # Sadece yukarı hareket ederken
+            self.y_velocity *= self.jump_cut_factor  # Hızı azalt (ör. %50)
+            print(f"Zıplama tuşu bırakıldı, y_velocity={self.y_velocity}")
+
 
     def check_hit_enemies(self, enemies):
         """Düşman yenildiğinde hasar artışı"""
@@ -537,101 +767,6 @@ class Samurai(pygame.sprite.Sprite):
                         return True
         return False
     
-    # Update the update_animation method to handle hurt and death animations:
-    def update_animation(self, arrow_group=None):
-        self.update_counter += 1
-        current_speed = self.animation_speed + 3 if not (self.is_moving or self.is_attacking or self.is_jumping or self.is_hurt or self.is_dead or self.is_shooting) else self.animation_speed
-
-        if self.update_counter < current_speed:
-            return
-
-        self.update_counter = 0
-
-        # Ok atma animasyonu
-        if self.is_shooting:
-            frames = self.shot_frames
-            if self.frame_index >= len(frames):
-                self.is_shooting = False
-                self.shot_finished = True
-                self.frame_index = 0
-                # Animasyon bittiğinde oku at
-                if arrow_group is not None:
-                    direction = 1 if not self.flip else -1
-                    arrow_x = self.rect.centerx + (40 * direction)  # Okun başlangıç pozisyonu
-                    arrow_y = self.rect.centery - 10  # Okun yüksekliği
-                    new_arrow = Arrow(arrow_x, arrow_y, direction)
-                    arrow_group.add(new_arrow)
-                    print(f"Ok atıldı! Kalan ok: {self.arrow_count}")
-            else:
-                self.image = frames[self.frame_index]
-                self.frame_index += 1
-        elif self.is_dead:
-            frames = self.death_frames
-            if self.frame_index >= len(frames) - 1:
-                self.frame_index = len(frames) - 1
-                self.death_finished = True
-            else:
-                self.image = frames[self.frame_index]
-                self.frame_index += 1
-        elif self.is_hurt:
-            frames = self.hurt_frames
-            if self.frame_index >= len(frames):
-                self.is_hurt = False
-                self.hurt_finished = True
-                self.frame_index = 0
-            else:
-                self.image = frames[self.frame_index]
-                self.frame_index += 1
-        elif self.is_attacking:
-            frames = self.current_attack_frames
-            if self.frame_index >= len(frames):
-                self.is_attacking = False
-                self.attack_finished = True
-                self.frame_index = 0
-                self.sound_triggered = False
-            else:
-                self.image = frames[self.frame_index]
-                self.frame_index += 1
-        elif self.is_jumping:
-            frames = self.jump_frames
-            if self.frame_index < len(frames) - 1:
-                self.frame_index += 1
-                self.image = frames[self.frame_index]
-        elif self.is_running:
-            frames = self.run_frames
-            self.frame_index = (self.frame_index + 1) % len(frames)
-            self.image = frames[self.frame_index]
-        elif self.is_moving:
-            frames = self.walk_frames
-            self.frame_index = (self.frame_index + 1) % len(frames)
-            self.image = frames[self.frame_index]
-        else:
-            frames = self.idle_frames
-            self.frame_index = (self.frame_index + 1) % len(frames)
-            self.image = frames[self.frame_index]
-
-    def update(self, collision_rects, spike_rects, enemies, arrow_group, dt):  # dt eklendi
-        if self.is_dead and self.death_finished:
-            return
-        if self.invincibility_counter > 0:
-            self.invincibility_counter -= 1
-        self.check_on_ground(collision_rects)
-        if self.on_ground:
-            self.jump_count = 0
-        for spike_rect in spike_rects:
-            if self.hitbox.colliderect(spike_rect) and self.invincibility_counter <= 0:
-                self.get_hit(10)
-        self.check_hit_enemies(enemies)
-        self.y_velocity += self.gravity * dt * 60
-        if self.y_velocity > self.max_fall_speed:
-            self.y_velocity = self.max_fall_speed
-        if not self.is_dead:
-            self.handle_collisions(0, self.y_velocity, collision_rects)
-        if self.shot_cooldown > 0:
-            self.shot_cooldown -= 1
-        self.update_animation(arrow_group)
-        if self.is_charging:
-            self.charge_time += 1
 
     def reset(self):
         self.health = self.max_health
@@ -674,6 +809,7 @@ class Samurai(pygame.sprite.Sprite):
         self.update_ground_check()
         
     def check_on_ground(self, collision_rects):
+        """Zeminde olup olmadığını kontrol eder"""
         self.update_ground_check()
         self.on_ground = False
         for rect in collision_rects:
@@ -726,7 +862,7 @@ class Samurai(pygame.sprite.Sprite):
 
     # Update the move method to prevent movement when hurt or dead:
     def move(self, moving_left, moving_right, running, collision_rects):
-        if self.is_hurt or self.is_dead:
+        if self.is_hurt or self.is_dead or self.is_collecting_potion:
             return
             
         dx = 0
@@ -803,11 +939,20 @@ class Samurai(pygame.sprite.Sprite):
 
         # Debug drawing code...
 
+
 def check_potion_collisions():
     for potion in health_potions:
         if not potion.collected and player.hitbox.colliderect(potion.rect):
+            if player.health == player.max_health:  # Can doluysa
+                print("Canın zaten dolu, iksir alınamaz!")
+                continue
+            # Animasyonu başlat
             potion.collected = True
-            player.collect_potion()  # Oyuncunun iksir toplama metodunu çağır
+            player.collect_potion()  # Sağlık artışı ve diğer mantığı çağı
+            potion_sound = pygame.mixer.Sound("sounds/potion.wav")
+            pygame.mixer.Channel(1).play(potion_sound)
+            print("Health potion collected!")
+            break  # Birden fazla iksirin aynı anda toplanmasını önlemek için
 
 class Arrow(pygame.sprite.Sprite):
     # Class variable for the sound - load this once
@@ -1312,19 +1457,6 @@ class NinjaMonk(pygame.sprite.Sprite):
                 attack_height = self.attack_hitbox.height * ZOOM_FACTOR
                 pygame.draw.rect(surface, (255, 165, 0), (attack_x, attack_y, attack_width, attack_height), 2)
 
-def check_potion_collisions():
-    for potion in health_potions:
-        if not potion.collected and player.hitbox.colliderect(potion.rect):
-            if player.health == player.max_health:  # Can doluysa
-                print("Canın zaten dolu, iksir alınamaz!")
-                continue  # İksiri toplama, döngüye devam et
-            potion.collected = True
-            player.collect_potion()
-            # İsteğe bağlı: Bir ses çal veya efekt göster
-            print("Health potion collected!")
-            potion_sound = pygame.mixer.Sound("sounds/potion.wav")
-            pygame.mixer.Channel(1).play(potion_sound)
-
 # Load initial map
 load_map(current_map)
 
@@ -1336,7 +1468,8 @@ run_spritesheet = Spritesheet("player sprite sheets/Run.png")
 attack1_spritesheet = Spritesheet("player sprite sheets/Attack_1.png")
 attack2_spritesheet = Spritesheet("player sprite sheets/Attack_2.png")
 attack3_spritesheet = Spritesheet("player sprite sheets/Attack_3.png")
-
+elixir_spritesheet = Spritesheet("player sprite sheets/Elixir.png")
+pullup_spritesheet = Spritesheet("player sprite sheets/Pull_up.png")
 
 # Load additional spritesheets for hurt and death animations
 hurt_spritesheet = Spritesheet("player sprite sheets/Hurt.png")
@@ -1358,8 +1491,12 @@ ninja_jump_spritesheet = Spritesheet("ENEMIES/Jump.png")
 player_spawn = find_spawn_point()
 
 # Create player and camera
+
+
+# Samurai nesnesini oluştururken pullup_spritesheet'i ekle
 player = Samurai(walk_spritesheet, idle_spritesheet, jump_spritesheet, 
-                 run_spritesheet, attack1_spritesheet, attack2_spritesheet,attack1_spritesheet ,hurt_spritesheet, death_spritesheet,
+                 run_spritesheet, attack1_spritesheet, attack2_spritesheet, attack3_spritesheet, 
+                 elixir_spritesheet, hurt_spritesheet, death_spritesheet, pullup_spritesheet,
                  player_spawn[0], player_spawn[1], 1, 3)
 
 player.on_ground = False
@@ -1393,6 +1530,8 @@ for spawn in enemy_spawn_points:
 
 health_potions = []
 health_potions.append(HealthPotion(1000,1120))  # x: 300, y: 500 konumuna bir iksir ekle
+health_potions.append(HealthPotion(1400,1120))
+health_potions.append(HealthPotion(1600,1120))
 
 
 
@@ -1413,13 +1552,141 @@ moving_left = False
 moving_right = False
 running_fast = False
 
+import json
+import pygame.time
+
+# Fontu global olarak tanımlayın (zaten kodunuzda var, sadece emin olun)
+font = pygame.font.Font(None, 36)
+font_big = pygame.font.Font(None, 40)
+
+def save_game():
+    global current_map, player, enemies, screen
+    # "Saving..." mesajını hazırla
+    saving_text = font_big.render("Saving...", True, (255, 255, 255))
+    text_rect = saving_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
+    
+    # Ekranı temizle ve mesajı göster
+    screen.fill((0, 0, 0))  # Siyah arka plan
+    screen.blit(saving_text, text_rect)
+    pygame.display.flip()
+    
+    # Kısa bir bekleme (örneğin 1 saniye)
+    pygame.time.wait(1000)  # 1000 ms = 1 saniye
+    
+    # Oyun durumunu kaydet
+    game_state = {
+        "player_pos": (player.rect.x, player.rect.y),
+        "health": player.health,
+        "max_health": player.max_health,
+        "potions": player.potions_collected,
+        "enemies_defeated": player.enemies_defeated,
+        "attack_damage": player.attack_damage,
+        "arrow_count": player.arrow_count,
+        "current_map": current_map,
+        "enemies": [
+            {
+                "pos": (enemy.rect.x, enemy.rect.y),
+                "health": enemy.health,
+                "alive": enemy.alive,
+                "initial_position": enemy.initial_position
+            } for enemy in enemies
+        ],
+        "health_potions": [
+            {
+                "pos": (potion.rect.x, potion.rect.y),
+                "collected": potion.collected
+            } for potion in health_potions
+        ]
+    }
+    with open("savegame.json", "w") as f:
+        json.dump(game_state, f)
+    
+    # Kaydetme tamamlandı mesajı
+    saved_text = font_big.render("Game Saved!", True, (0, 255, 0))
+    text_rect = saved_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
+    screen.fill((0, 0, 0))
+    screen.blit(saved_text, text_rect)
+    pygame.display.flip()
+    pygame.time.wait(500)  # 0.5 saniye "Game Saved!" göster
+    
+    print("Oyun kaydedildi!")
+
+def load_game():
+    global current_map, player, enemies, camera_x, camera_y, health_potions, screen
+    # "Loading..." mesajını hazırla
+    loading_text = font_big.render("Loading...", True, (255, 255, 255))
+    text_rect = loading_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
+    
+    # Ekranı temizle ve mesajı göster
+    screen.fill((0, 0, 0))  # Siyah arka plan
+    screen.blit(loading_text, text_rect)
+    pygame.display.flip()
+    
+    # Kısa bir bekleme (örneğin 1.5 saniye)
+    pygame.time.wait(1500)  # 1500 ms = 1.5 saniye
+    
+    try:
+        with open("savegame.json", "r") as f:
+            game_state = json.load(f)
+            player.rect.x = game_state["player_pos"][0]
+            player.rect.y = game_state["player_pos"][1]
+            player.health = game_state["health"]
+            player.max_health = game_state["max_health"]
+            player.potions_collected = game_state["potions"]
+            player.enemies_defeated = game_state["enemies_defeated"]
+            player.attack_damage = game_state["attack_damage"]
+            player.arrow_count = game_state["arrow_count"]
+            player.update_hitbox()
+            current_map = game_state["current_map"]
+            load_map(current_map)
+            camera_x = player.rect.centerx - SCREEN_WIDTH // (2 * ZOOM_FACTOR)
+            camera_y = player.rect.centery - SCREEN_HEIGHT // (2 * ZOOM_FACTOR)
+            camera = Camera(map_width, map_height)
+            enemies.clear()
+            for enemy_data in game_state["enemies"]:
+                ninja = NinjaMonk(
+                    ninja_idle_spritesheet, ninja_walk_spritesheet, 
+                    ninja_attack_spritesheet, ninja_hurt_spritesheet, 
+                    ninja_death_spritesheet,
+                    enemy_data["pos"][0], enemy_data["pos"][1], 1, 2, 200
+                )
+                ninja.health = enemy_data["health"]
+                ninja.alive = enemy_data["alive"]
+                ninja.initial_position = enemy_data["initial_position"]
+                ninja.rect.x = enemy_data["pos"][0]
+                ninja.rect.y = enemy_data["pos"][1]
+                ninja.update_hitbox()
+                if not ninja.alive:
+                    ninja.is_dead = True
+                    ninja.death_finished = True
+                enemies.append(ninja)
+            health_potions.clear()
+            for potion_data in game_state["health_potions"]:
+                potion = HealthPotion(potion_data["pos"][0], potion_data["pos"][1])
+                potion.collected = potion_data["collected"]
+                health_potions.append(potion)
+            
+            # Yükleme tamamlandı mesajı
+            loaded_text = font_big.render("Game Loaded!", True, (0, 255, 0))
+            text_rect = loaded_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
+            screen.fill((0, 0, 0))
+            screen.blit(loaded_text, text_rect)
+            pygame.display.flip()
+            pygame.time.wait(500)  # 0.5 saniye "Game Loaded!" göster
+            
+            print("Oyun yüklendi!")
+    except FileNotFoundError:
+        error_text = font_big.render("No Save File Found!", True, (255, 0, 0))
+        text_rect = error_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
+        screen.fill((0, 0, 0))
+        screen.blit(error_text, text_rect)
+        pygame.display.flip()
+        pygame.time.wait(1000)  # 1 saniye hata mesajı göster
+        print("Kayıt dosyası bulunamadı!")
+
+# Oyun döngüsünde tırmanma kontrolü
 while running:
     dt = clock.tick(FPS) / 1000.0
-
-    # Add game over detection and restart
-    font_big = pygame.font.Font(None, 72)
-    game_over = False
-    restart_countdown = 180  # 3 seconds at 60 FPS
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -1427,19 +1694,25 @@ while running:
         if event.type == pygame.USEREVENT:
             player.hit_sound_playing = False
         if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_F11:
+                save_game()
+            if event.key == pygame.K_F12:
+                load_game()
             if event.key == pygame.K_a:
                 moving_left = True
             if event.key == pygame.K_d:
                 moving_right = True
-            if event.key == pygame.K_w:
+            if event.key == pygame.K_SPACE:  # Zıplama tuşu
                 player.jump()
             if event.key == pygame.K_j:
                 player.attack(1)
-            if event.key == pygame.K_k:
-                player.attack(2)
+            if  current_map=="frozen_cave" or current_map=="cyberpunk":
+               if event.key == pygame.K_k:
+                   player.attack(2)
             if event.key == pygame.K_l:
-                player.attack(3)
-            if event.key == pygame.K_o:  # Örnek: 'o' tuşu ile ok at
+               if current_map=="cyberpunk":
+                   player.attack(3)
+            if event.key == pygame.K_o:
                 player.shoot(arrows)
             if event.key in (pygame.K_LSHIFT, pygame.K_RSHIFT):
                 running_fast = True
@@ -1468,88 +1741,103 @@ while running:
                 moving_right = False
             if event.key in (pygame.K_LSHIFT, pygame.K_RSHIFT):
                 running_fast = False
+            if event.key == pygame.K_SPACE:
+                player.release_jump()  # Zıplama tuşu bırakıldığında
             
     player.move(moving_left, moving_right, running_fast, collision_rects)
     player.update(collision_rects, spike_rects, enemies, arrows, dt)
-    check_potion_collisions()  # İksir toplama kontrolü
 
-    # Check for map transitions
+    check_potion_collisions()
+
     if check_map_transitions():
-        # Skip the rest of this frame if map changed
         continue
 
+
+    # Kamera hareketi
     CAMERA_LERP = 0.05
     target_x = player.rect.centerx - SCREEN_WIDTH // (2 * ZOOM_FACTOR)
     target_y = player.rect.centery - SCREEN_HEIGHT // (2 * ZOOM_FACTOR)
     camera_x += (target_x - camera_x) * CAMERA_LERP
     camera_y += (target_y - camera_y) * CAMERA_LERP
-
     camera_x = max(0, min(camera_x, map_width - SCREEN_WIDTH / ZOOM_FACTOR))
     camera_y = max(0, min(camera_y, map_height - SCREEN_HEIGHT / ZOOM_FACTOR))
 
     screen.fill((0, 0, 0))
-    
-    # Draw background layers
+
+    # Harita katmanlarını çiz
     for i, layer in enumerate(tmx_data.layers):
         if i < front_layer_index and isinstance(layer, pytmx.TiledTileLayer):
             draw_layer(layer, screen, camera_x, camera_y)
-    
-    # Draw player
+
+    # Oyuncuyu çiz
     player.draw(screen, camera_x, camera_y)
-    
-    # Draw foreground layers
+
+    # Ön plan katmanlarını çiz
     for i, layer in enumerate(tmx_data.layers):
         if i >= front_layer_index and isinstance(layer, pytmx.TiledTileLayer):
             draw_layer(layer, screen, camera_x, camera_y)
 
-
-
-        # Oyun döngüsünde render işlemi sırasında
+    # İksirleri çiz
     for potion in health_potions:
         potion.draw(screen, camera_x, camera_y)
 
+    # Okları güncelle ve çiz
     arrows.update(collision_rects, enemies)
     for arrow in arrows:
         arrow.draw(screen, camera_x, camera_y)
 
-    # Düşmanları güncelle ve kaldırılacakları belirle
+    # Düşmanları güncelle ve çiz
     enemies_to_remove = []
     for enemy in enemies:
-        enemy.update(player, collision_rects)  # Tüm düşmanları güncelle
-        if enemy.should_remove:  # 2 saniye bekleme süresi dolduysa
+        enemy.update(player, collision_rects)
+        if enemy.should_remove:
             enemies_to_remove.append(enemy)
-            print(f"Removing enemy after 2 seconds: {enemy}")
 
-    # Kaldırılacak düşmanları listeden çıkar
     for enemy in enemies_to_remove:
         enemies.remove(enemy)
-        print(f"Enemy removed from list. Remaining enemies: {len(enemies)}")
 
-    # Düşmanları çiz
     for enemy in enemies:
-        if enemy.alive or (enemy.is_dead and not enemy.death_finished):  # Sadece yaşayan veya ölüm animasyonu oynayan düşmanları çiz
+        if enemy.alive or (enemy.is_dead and not enemy.death_finished):
             enemy.draw(screen, camera_x, camera_y)
 
+
+    # Game over ekranı
     if player.is_dead and player.death_finished:
         game_over = True
         game_over_text = font_big.render("GAME OVER", True, (255, 0, 0))
         text_rect = game_over_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
         screen.blit(game_over_text, text_rect)
-        
         restart_text = font.render("Press R to restart", True, (255, 255, 255))
         restart_rect = restart_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 50))
         screen.blit(restart_text, restart_rect)
-
-    # Show FPS
+        
+    # FPS ve durum göstergeleri
     fps_text = font.render(f"FPS: {int(clock.get_fps())}", True, (255, 255, 255))
     screen.blit(fps_text, (10, 10))
-    
-    
-    # Show player status
     player_status = f"Pos: ({int(player.rect.x)}, {int(player.rect.y)}) | Ground: {player.on_ground}"
     status_text = font.render(player_status, True, (255, 255, 255))
     screen.blit(status_text, (10, 50))
-    
+        # Mesaj zamanlayıcısını güncelle
+    if show_message:
+        message_timer -= 1
+        if message_timer <= 0:
+            show_message = False
+        
+        # Mesajı ekrana çiz
+        msg_surface = font_big.render(message_text, True, (0, 0, 0))
+        msg_rect = msg_surface.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 20))
+        screen.blit(msg_surface, msg_rect)
+    if show2_message:
+        message2_timer -= 1
+        if message2_timer <= 0:
+            show2_message = False
+        
+        # Mesajı ekrana çiz
+        msg2_surface = font_big.render(message2_text, True, (0, 0, 0))
+        msg2_rect = msg2_surface.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 20))
+        screen.blit(msg2_surface, msg2_rect)
+    print(current_map)      
+
     pygame.display.flip()
 
 # Quit game
