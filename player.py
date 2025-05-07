@@ -18,11 +18,14 @@ game_over = False
 # Mesaj gösterimi için değişkenler
 show_message = False
 show2_message= False 
+show3_message= False 
 message_timer = 0
 message2_timer = 0
+message3_timer =0
 message_duration = 5 * FPS  # 5 saniye (FPS cinsinden)
-message_text = "K tuşu ile yeni özellik açıldı!"  # Gösterilecek mesaj
-message2_text = "L tuşu ile yeni özellik açıldı!"
+message_text = "The new feature is opened with the \"K\" button!"  # Gösterilecek mesaj
+message2_text = "The new feature is opened with the \"L\" button!"
+message3_text="The new feature is opened with the \"0\" button!"
 # Game state and map management
 current_map = "village"  # Starting map
 maps_data = {}  # Cache for loaded maps
@@ -221,7 +224,7 @@ def find_spawn_point(spawn_name="spawn_point"):
     return default_spawn
 
 def check_map_transitions():
-    global current_map, camera_x, camera_y, camera, health_potions, show_message,show2_message, message_timer,message2_timer
+    global current_map, camera_x, camera_y, camera, health_potions, show_message,show2_message, message_timer,message2_timer,show3_message,message3_timer
     
     for transition_name, transition_data in transition_rects.items():
         if player.hitbox.colliderect(transition_data['rect']):
@@ -261,6 +264,9 @@ def check_map_transitions():
                 if current_map =="cyberpunk":
                     show2_message = True 
                     message2_timer = message_duration
+                if current_map=="lab":
+                    show3_message = True 
+                    message3_timer=message_duration
                 
                 return True
     
@@ -1719,14 +1725,15 @@ while running:
                 player.jump()
             if event.key == pygame.K_j:
                 player.attack(1)
-            if  current_map=="frozen_cave" or current_map=="cyberpunk":
+            if  current_map=="frozen_cave" or current_map=="cyberpunk" or current_map=="lab":
                if event.key == pygame.K_k:
                    player.attack(2)
             if event.key == pygame.K_l:
-               if current_map=="cyberpunk":
+               if current_map=="cyberpunk" or current_map=="lab":
                    player.attack(3)
-            if event.key == pygame.K_o:
-                player.shoot(arrows)
+            if current_map=="lab":
+              if event.key == pygame.K_o:
+                  player.shoot(arrows)
             if event.key in (pygame.K_LSHIFT, pygame.K_RSHIFT):
                 running_fast = True
             if game_over and event.key == pygame.K_r:
@@ -1849,7 +1856,15 @@ while running:
         msg2_surface = font_big.render(message2_text, True, (255, 255, 255))
         msg2_rect = msg2_surface.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 20))
         screen.blit(msg2_surface, msg2_rect)
-    print(current_map)      
+    print(current_map)    
+    if show3_message:
+        message3_timer -= 1
+        if message3_timer <= 0:
+            show3_message = False
+        msg3_surface = font_big.render(message3_text, True, (0, 0, 0))
+        msg3_rect = msg3_surface.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 20))
+        screen.blit(msg3_surface, msg3_rect)
+
 
     pygame.display.flip()
 
