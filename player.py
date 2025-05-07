@@ -380,17 +380,19 @@ def draw_layer(layer, surface, camera_x, camera_y):
                         screen_y = (y - start_y) * tmx_data.tileheight * ZOOM_FACTOR + offset_y
                         surface.blit(tile_cache[cache_key], (screen_x, screen_y))
 
-# Samurai (Player) class
+import pygame
+
 class Samurai(pygame.sprite.Sprite):
     def __init__(self, walk_spritesheet, idle_spritesheet, jump_spritesheet, 
                  run_spritesheet, attack1_spritesheet, attack2_spritesheet, attack3_spritesheet, 
                  elixir_spritesheet, hurt_spritesheet, death_spritesheet, pullup_spritesheet, 
                  x, y, scale, speed):
         pygame.sprite.Sprite.__init__(self)
+        # Mevcut __init__ içeriği
         self.speed = speed
         self.flip = False
         self.frame_index = 0
-        self.animation_speed = max(1, round(60 / 12))  # 12 FPS
+        self.animation_speed = max(1, round(60 / 12))
         self.update_counter = 0
         self.is_moving = False
         self.is_running = False
@@ -404,8 +406,8 @@ class Samurai(pygame.sprite.Sprite):
         self.attack_finished = True
         self.hurt_finished = True
         self.death_finished = False
-        self.jump_power = -12 # Zıplama gücü (negatif, yukarı yön)
-        self.jump_cut_factor = 0.5  # Tuş bırakıldığında hız azaltma oranı (0.5 = %50)
+        self.jump_power = -12
+        self.jump_cut_factor = 0.5
         self.y_velocity = 0
         self.gravity = 0.5
         self.max_fall_speed = 10
@@ -437,8 +439,13 @@ class Samurai(pygame.sprite.Sprite):
         self.shot_cooldown = 0
         self.max_arrows = 10
         self.arrow_count = self.max_arrows
+        self.last_jump_time = 0
+        self.jump_cooldown = 500
+        # Coyote Time için yeni değişkenler
+        self.coyote_time = 150  # ms cinsinden coyote time süresi
+        self.last_grounded_time = 0  # Son yerde olduğu zaman
 
-        # Animasyonlar
+        # Mevcut animasyon yüklemeleri
         self.walk_frames = walk_spritesheet.get_animation_frames(128, 128, scale)
         self.idle_frames = idle_spritesheet.get_animation_frames(128, 128, scale)
         self.elixir_frames = elixir_spritesheet.get_animation_frames(128, 128, scale)
@@ -450,7 +457,7 @@ class Samurai(pygame.sprite.Sprite):
         self.hurt_frames = hurt_spritesheet.get_animation_frames(128, 128, scale)
         self.death_frames = death_spritesheet.get_animation_frames(128, 128, scale)
         self.shot_frames = self.shot_spritesheet.get_animation_frames(128, 128, scale)
-        self.pullup_frames = pullup_spritesheet.get_animation_frames(128, 128, scale)  # Yeni pull-up animasyonu
+        self.pullup_frames = pullup_spritesheet.get_animation_frames(128, 128, scale)
 
         self.image = self.idle_frames[0]
         self.rect = self.image.get_rect()
@@ -464,10 +471,41 @@ class Samurai(pygame.sprite.Sprite):
         self.rect.bottom = y
         self.update_hitbox()
         self.attack_hitbox = pygame.Rect(0, 0, 60, 40)
-
-        # Tırmanma için tutma alanı (grab area)
         self.grab_area = pygame.Rect(0, 0, self.hitbox.width * 1.2, 20)
         self.update_grab_area()
+
+    def check_on_ground(self, collision_rects):
+        """Zeminde olup olmadığını kontrol eder ve coyote time'ı günceller"""
+        self.update_ground_check()
+        self.on_ground = False
+        for rect in collision_rects:
+            if self.ground_check.colliderect(rect):
+                self.on_ground = True
+                self.last_grounded_time = pygame.time.get_ticks()
+                if self.y_velocity > 0:
+                    self.y_velocity = 0
+                if self.is_jumping and not self.is_attacking:
+                    self.is_jumping = False
+                break
+
+    def jump(self):
+        """Zıplama işlemini başlatır (Coyote time ile)"""
+        if self.is_hurt or self.is_dead:
+            print(f"Zıplama engellendi: is_hurt={self.is_hurt}, is_dead={self.is_dead}")
+            return
+        current_time = pygame.time.get_ticks()
+        # Coyote time kontrolü: Zeminde veya coyote time içindeyse zıplayabilir
+        if not self.on_ground and (current_time - self.last_grounded_time > self.coyote_time):
+            print("Zıplama engellendi: Coyote time süresi doldu")
+            return
+        if self.is_attacking:
+            return
+        self.is_jumping = True
+        self.y_velocity = self.jump_power
+        self.frame_index = 0
+        self.update_counter = 0
+        self.last_jump_time = current_time
+        print("Zıplama başladı!")
 
     def update_grab_area(self):
         """Tutma alanını güncelle (karakterin üst kısmında bir alan)"""
@@ -718,26 +756,13 @@ class Samurai(pygame.sprite.Sprite):
         self.sound_triggered = False
         if attack_type == 1:
             self.current_attack_frames = self.attack1_frames
-            if self.is_charging and self.charge_time >= 30:
-                self.attack_damage = self.charged_attack_damage
-                print("Güçlü saldırı kullanıldı!")
-            else:
-                self.attack_damage = 20
-        else:
+    
+        elif attack_type == 2:
             self.current_attack_frames = self.attack2_frames
 
-    def jump(self):
-        """Zıplama işlemini başlatır"""
-        if self.is_hurt or self.is_dead:
-            print(f"Zıplama engellendi: is_hurt={self.is_hurt}, is_dead={self.is_dead}")
-            return
-        if self.is_attacking or not self.on_ground:
-            return
-        self.is_jumping = True
-        self.y_velocity = self.jump_power  # Tam zıplama gücü
-        self.frame_index = 0
-        self.update_counter = 0
-        print("Zıplama başladı!")
+        else:
+            self.current_attack_frames = self.attack3_frames
+
 
     def release_jump(self):
         """Zıplama tuşu bırakıldığında hızı azaltır (jump cut)"""
@@ -808,18 +833,6 @@ class Samurai(pygame.sprite.Sprite):
         self.hitbox.midbottom = self.rect.midbottom
         self.update_ground_check()
         
-    def check_on_ground(self, collision_rects):
-        """Zeminde olup olmadığını kontrol eder"""
-        self.update_ground_check()
-        self.on_ground = False
-        for rect in collision_rects:
-            if self.ground_check.colliderect(rect):
-                self.on_ground = True
-                if self.y_velocity > 0:
-                    self.y_velocity = 0
-                if self.is_jumping and not self.is_attacking:
-                    self.is_jumping = False
-                break
                 
     def handle_collisions(self, dx, dy, collision_rects):
         # Horizontal movement
@@ -962,10 +975,10 @@ class Arrow(pygame.sprite.Sprite):
         pygame.sprite.Sprite.__init__(self)
         self.image = pygame.image.load("player sprite sheets/Arrow.png").convert_alpha()  # Ok görseli
         self.rect = self.image.get_rect()
-        self.rect.center = (x, y)
+        self.rect.center = (x, y+15)
         self.speed = speed
         self.direction = direction  # 1: sağ, -1: sol
-        self.damage = 15  # Okun vereceği hasar
+        self.damage = 25  # Okun vereceği hasar
         
         # Load the sound if it hasn't been loaded yet
         if Arrow.hit_sound is None:
@@ -1833,7 +1846,7 @@ while running:
             show2_message = False
         
         # Mesajı ekrana çiz
-        msg2_surface = font_big.render(message2_text, True, (0, 0, 0))
+        msg2_surface = font_big.render(message2_text, True, (255, 255, 255))
         msg2_rect = msg2_surface.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 20))
         screen.blit(msg2_surface, msg2_rect)
     print(current_map)      
