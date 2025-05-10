@@ -7,7 +7,7 @@ pygame.mixer.pre_init(44100, -16, 2, 2048)  # Frekans: 44.1kHz, 16-bit, stereo, 
 pygame.mixer.init()
 pygame.init()
 # Screen settings
-SCREEN_WIDTH = 1200
+SCREEN_WIDTH = 1200 
 SCREEN_HEIGHT = 600
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("Samurai's path ")
@@ -27,7 +27,7 @@ message_text = "The new feature is opened with the \"K\" button!"  # Gösterilec
 message2_text = "The new feature is opened with the \"L\" button!"
 message3_text="The new feature is opened with the \"0\" button!"
 # Game state and map management
-current_map = "village"  # Starting map
+current_map = "frozen_cave"  # Starting map
 maps_data = {}  # Cache for loaded maps
 transition_rects = {}  # Transition zones for each map
 
@@ -450,6 +450,7 @@ class Samurai(pygame.sprite.Sprite):
         # Coyote Time için yeni değişkenler
         self.coyote_time = 150  # ms cinsinden coyote time süresi
         self.last_grounded_time = 0  # Son yerde olduğu zaman
+        self.is_in_dialogue = False  # Yeni bayrak: Diyalog durumunda mı?
 
         # Mevcut animasyon yüklemeleri
         self.walk_frames = walk_spritesheet.get_animation_frames(128, 128, scale)
@@ -496,7 +497,7 @@ class Samurai(pygame.sprite.Sprite):
 
     def jump(self):
         """Zıplama işlemini başlatır (Coyote time ile)"""
-        if self.is_hurt or self.is_dead:
+        if self.is_hurt or self.is_dead or self.is_in_dialogue:
             print(f"Zıplama engellendi: is_hurt={self.is_hurt}, is_dead={self.is_dead}")
             return
         current_time = pygame.time.get_ticks()
@@ -729,7 +730,7 @@ class Samurai(pygame.sprite.Sprite):
 
     def shoot(self, arrow_group):
         # Hasar alınıyorsa veya ölü ise ok atamaz
-        if self.is_hurt or self.is_dead:
+        if self.is_hurt or self.is_dead or self.is_in_dialogue:
             print(f"Ok atılamadı: is_hurt={self.is_hurt}, is_dead={self.is_dead}")
             return
         if self.is_shooting or self.shot_cooldown > 0 or self.arrow_count <= 0:
@@ -748,7 +749,7 @@ class Samurai(pygame.sprite.Sprite):
 
     def attack(self, attack_type):
         # Hasar alınıyorsa veya ölü ise saldıramaz
-        if self.is_hurt or self.is_dead:
+        if self.is_hurt or self.is_dead or self.is_in_dialogue:
             print(f"Saldırı engellendi: is_hurt={self.is_hurt}, is_dead={self.is_dead}")
             return
         if self.is_attacking:
@@ -881,7 +882,7 @@ class Samurai(pygame.sprite.Sprite):
 
     # Update the move method to prevent movement when hurt or dead:
     def move(self, moving_left, moving_right, running, collision_rects):
-        if self.is_hurt or self.is_dead or self.is_collecting_potion:
+        if self.is_hurt or self.is_dead or self.is_collecting_potion or self.is_in_dialogue:
             return
             
         dx = 0
@@ -1475,7 +1476,301 @@ class NinjaMonk(pygame.sprite.Sprite):
                 attack_width = self.attack_hitbox.width * ZOOM_FACTOR
                 attack_height = self.attack_hitbox.height * ZOOM_FACTOR
                 pygame.draw.rect(surface, (255, 165, 0), (attack_x, attack_y, attack_width, attack_height), 2)
+                
 
+
+import pygame
+from pygame import Vector2
+
+# Mevcut Spritesheet sınıfını kullanıyoruz
+class Font:
+    def __init__(self, font_path=None, size=24):
+        self.font = pygame.font.Font(font_path, size) if font_path else pygame.font.Font(None, size)
+    
+    def render(self, text, color=(255, 255, 255), background=None, shadow=False):
+        if shadow:
+            shadow_surface = self.font.render(text, True, (0, 0, 0))
+            main_surface = self.font.render(text, True, color)
+            width, height = self.font.size(text)
+            final_surface = pygame.Surface((width + 2, height + 2), pygame.SRCALPHA)
+            final_surface.blit(shadow_surface, (2, 2))
+            final_surface.blit(main_surface, (0, 0))
+            return final_surface
+        elif background:
+            return self.font.render(text, True, color, background)
+        return self.font.render(text, True, color)
+    
+    def get_size(self, text):
+        return self.font.size(text)
+
+class NPC(pygame.sprite.Sprite):
+    def __init__(self, idle_spritesheet, x, y, scale, name):
+        pygame.sprite.Sprite.__init__(self)
+        self.name = name
+        self.scale = scale
+        self.flip = False
+        self.frame_index = 0
+        self.animation_speed = max(1, round(60 / 12))
+        self.update_counter = 0
+        self.current_animation = "idle"
+        
+        # Animasyonlar
+        self.animations = {
+            "idle": idle_spritesheet.get_animation_frames(128, 128, scale)
+        }
+        
+        self.image = self.animations["idle"][0]
+        self.rect = self.image.get_rect()
+        self.rect.center = (x, y)
+        
+        # Hitbox
+        hitbox_width = self.rect.width * 0.3
+        hitbox_height = self.rect.height * 0.6
+        self.hitbox = pygame.Rect(0, 0, hitbox_width, hitbox_height)
+        self.hitbox.midbottom = self.rect.midbottom
+        
+        # Etkileşim ve diyalog
+        self.is_interacting = False
+        self.interaction_range = 100
+        self.show_interact_prompt = False
+        self.dialogues = []
+        self.current_dialogue_index = 0
+        
+        # Etkileşim ipucu için animasyon değişkenleri
+        self.prompt_alpha = 0
+        self.prompt_scale = 1.0
+        self.prompt_fade_speed = 15
+        self.prompt_animation_timer = 0
+        
+        # Etkileşim ipucu grafiği (isteğe bağlı)
+        try:
+            self.prompt_image = pygame.image.load("assets/e_prompt.png").convert_alpha()
+        except FileNotFoundError:
+            self.prompt_image = None
+        
+        # Önbellek
+        self.scaled_image_cache = {}
+    
+    def update_animation(self):
+        self.update_counter += 1
+        if self.update_counter < self.animation_speed:
+            return
+        
+        self.update_counter = 0
+        frames = self.animations[self.current_animation]
+        self.frame_index = (self.frame_index + 1) % len(frames)
+        self.image = frames[self.frame_index]
+    
+    def check_interaction(self, player, events):
+        player_pos = Vector2(player.rect.center)
+        self_pos = Vector2(self.rect.center)
+        distance = player_pos.distance_to(self_pos)
+        
+        # Mesafe kontrolü
+        self.show_interact_prompt = distance <= self.interaction_range
+        
+        # Etkileşim ipucu animasyonu
+        target_alpha = 255 if self.show_interact_prompt else 0
+        self.prompt_alpha += (target_alpha - self.prompt_alpha) * self.prompt_fade_speed * 0.1
+        self.prompt_alpha = max(0, min(255, self.prompt_alpha))
+        
+        # Ölçek animasyonu
+        self.prompt_animation_timer = pygame.time.get_ticks()
+        self.prompt_scale = 1.0 + 0.1 * (pygame.time.get_ticks() % 1000 / 1000)
+        
+        # Etkileşim kontrolü
+        for event in events:
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_e:
+                if self.show_interact_prompt:
+                    if not self.is_interacting:
+                        self.is_interacting = True
+                        self.current_dialogue_index = 0
+                        self.current_animation = "idle_2"
+                        self.frame_index = 0
+                        self.update_counter = 0
+                        print(f"{self.name} ile diyalog başladı")
+                        pygame.mixer.Sound("sounds/click.wav").play()
+                    else:
+                        self.current_dialogue_index += 1
+                        if self.current_dialogue_index >= len(self.dialogues):
+                            self.is_interacting = False
+                            self.current_animation = "idle"
+                            self.frame_index = 0
+                            self.update_counter = 0
+                            print(f"{self.name} ile diyalog bitti")
+                        else:
+                            print(f"{self.name} diyalog: {self.dialogues[self.current_dialogue_index]}")
+    
+    def update(self, player, events):
+        self.update_animation()
+        self.check_interaction(player, events)
+    
+    def draw(self, surface, camera_x, camera_y, font, zoom_factor):
+        # Karakteri çiz
+        screen_x = (self.rect.x - camera_x) * zoom_factor
+        screen_y = (self.rect.y - camera_y) * zoom_factor
+        scaled_width = int(self.rect.width * zoom_factor)
+        scaled_height = int(self.rect.height * zoom_factor)
+        
+        cache_key = (id(self.image), zoom_factor, self.flip)
+        if cache_key not in self.scaled_image_cache:
+            scaled_image = pygame.transform.scale(self.image, (scaled_width, scaled_height))
+            self.scaled_image_cache[cache_key] = pygame.transform.flip(scaled_image, self.flip, False)
+        
+        surface.blit(self.scaled_image_cache[cache_key], (screen_x, screen_y))
+        
+        # Etkileşim ipucunu çiz
+        if self.prompt_alpha > 0:
+            if self.prompt_image:
+                # Grafik tabanlı ipucu
+                prompt_width = int(self.prompt_image.get_width() * self.prompt_scale * zoom_factor)
+                prompt_height = int(self.prompt_image.get_height() * self.prompt_scale * zoom_factor)
+                scaled_prompt = pygame.transform.scale(self.prompt_image, (prompt_width, prompt_height))
+                scaled_prompt.set_alpha(int(self.prompt_alpha))
+                
+                # NPC'nin tam üstünde ortalanmış konum
+                prompt_x = screen_x + (scaled_width - prompt_width) / 2
+                prompt_y = screen_y - prompt_height - 5  # NPC'nin üstüne 5 piksel boşluk bırak
+                
+                # Arka plan çerçevesi (yuvarlak)
+                pygame.draw.circle(surface, (50, 50, 50, 150), 
+                                 (int(prompt_x + prompt_width / 2), int(prompt_y + prompt_height / 2)), 
+                                 int(prompt_width / 1.5), 0)
+                
+                surface.blit(scaled_prompt, (prompt_x, prompt_y))
+            else:
+                # Metin tabanlı ipucu
+                prompt_text = font.render("E", True, (255, 255, 255))
+                text_width, text_height = prompt_text.get_size()
+                scaled_width = int(text_width * self.prompt_scale)
+                scaled_height = int(text_height * self.prompt_scale)
+                scaled_prompt = pygame.transform.scale(prompt_text, (scaled_width, scaled_height))
+                scaled_prompt.set_alpha(int(self.prompt_alpha))
+                
+                # NPC'nin tam üstünde ortalanmış konum
+                prompt_x = screen_x + (self.rect.width * zoom_factor - scaled_width) / 2
+                prompt_y = screen_y - scaled_height - 10  # NPC'nin üstüne 10 piksel boşluk bırak
+                
+                # Arka plan çerçevesi (daire)
+                circle_radius = max(scaled_width, scaled_height) * 0.7
+                pygame.draw.circle(surface, (50, 50, 50, 150), 
+                                 (int(prompt_x + scaled_width / 2), int(prompt_y + scaled_height / 2)), 
+                                 int(circle_radius), 0)
+                
+                surface.blit(scaled_prompt, (prompt_x, prompt_y))
+        
+        # Diyalog metnini çiz
+        if self.is_interacting and self.current_dialogue_index < len(self.dialogues):
+            dialogue_text = self.dialogues[self.current_dialogue_index]
+            text_surface = font.render(dialogue_text, (255, 255, 255), background=(0, 0, 0))
+            text_width, text_height = font.get_size(dialogue_text)
+            dialogue_x = (SCREEN_WIDTH - text_width) / 2
+            dialogue_y = SCREEN_HEIGHT - text_height - 20
+            surface.blit(text_surface, (dialogue_x, dialogue_y))
+
+class Blacksmith(NPC):
+    def __init__(self, x, y, scale=1):
+        idle_spritesheet = Spritesheet("npc_sprites/idle.png")
+        idle_2_spritesheet = Spritesheet("npc_sprites/idle_2.png")
+        
+        super().__init__(idle_spritesheet, x, y, scale, "Blacksmith")
+        
+        self.animations["idle_2"] = idle_2_spritesheet.get_animation_frames(128, 128, scale)
+        
+        self.dialogues = [
+            "Merhaba, ben köyün demircisi! Kılıcını keskinleştirmek ister misin?",
+            "İyi bir kılıç, bir samurayın en iyi dostudur.",
+            "Eğer malzemelerin varsa, sana özel bir silah yapabilirim!",
+            "Yolculuğun nasıl gidiyor, gezgin?"
+        ]
+        
+        # Demir dövme sesi
+        try:
+            self.hammer_sound = pygame.mixer.Sound("sounds/blacksmith_hammer.wav")
+            self.hammer_sound.set_volume(0.3)
+        except FileNotFoundError:
+            print("Uyarı: sounds/blacksmith_hammer.wav bulunamadı!")
+            self.hammer_sound = None
+        
+        self.sound_range = 650                 # Maksimum duyulabilir mesafe
+        self.sound_step = 100                  # Her adımda ses şiddetinin değişeceği mesafe
+        self.sound_increment = 0.2            # Her adımda ses şiddetinin artış/azalış miktarı
+        self.base_volume = 0.2                # Temel ses seviyesi
+        self.current_volume = self.base_volume  # Şu anki ses seviyesi
+        self.last_sound_time = 0
+        self.sound_cooldown = 2000
+        self.sound_active = False
+    
+    def check_interaction(self, player, events):
+        player_pos = Vector2(player.rect.center)
+        self_pos = Vector2(self.rect.center)
+        distance = player_pos.distance_to(self_pos)
+        
+        # Mesafe kontrolü
+        self.show_interact_prompt = distance <= self.interaction_range
+        
+        # Etkileşim ipucu animasyonu
+        target_alpha = 255 if self.show_interact_prompt else 0
+        self.prompt_alpha += (target_alpha - self.prompt_alpha) * self.prompt_fade_speed * 0.1
+        self.prompt_alpha = max(0, min(255, self.prompt_alpha))
+        
+        # Ölçek animasyonu
+        self.prompt_animation_timer = pygame.time.get_ticks()
+        self.prompt_scale = 1.0 + 0.1 * (pygame.time.get_ticks() % 1000 / 1000)
+        
+        # Ses kontrolü
+        if self.hammer_sound and not self.is_interacting:
+            current_time = pygame.time.get_ticks()
+            if distance <= self.sound_range:
+                steps = (self.sound_range - min(distance, self.sound_range)) / self.sound_step
+                new_volume = min(1.0, self.base_volume + (steps * self.sound_increment))
+                if not self.sound_active:
+                    if current_time - self.last_sound_time >= self.sound_cooldown:
+                        pygame.mixer.Channel(3).play(self.hammer_sound, loops=-1)
+                        self.last_sound_time = current_time
+                        self.sound_active = True
+                        print(f"Demir dövme sesi çalındı! Mesafe: {distance:.2f}, Ses: {new_volume:.2f}")
+                if self.sound_active and abs(self.current_volume - new_volume) > 0.01:
+                    self.current_volume = new_volume
+                    pygame.mixer.Channel(3).set_volume(self.current_volume)
+                    print(f"Ses seviyesi güncellendi: {self.current_volume:.2f}")
+            elif distance > self.sound_range and self.sound_active:
+                pygame.mixer.Channel(3).stop()
+                self.sound_active = False
+                print("Ses durduruldu: Mesafe sınırın dışına çıkıldı")
+        
+        # Diyalog sırasında sesleri durdur
+        elif self.is_interacting and self.sound_active:
+            pygame.mixer.Channel(3).stop()
+            self.sound_active = False
+            print("Ses durduruldu: NPC ile diyalog başladı")
+        
+        # Etkileşim kontrolü
+        for event in events:
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_e:
+                if self.show_interact_prompt:
+                    if not self.is_interacting:
+                        self.is_interacting = True
+                        player.is_in_dialogue = True  # Oyuncuyu diyalog moduna al
+                        self.current_dialogue_index = 0
+                        self.current_animation = "idle_2"
+                        self.frame_index = 0
+                        self.update_counter = 0
+                        print(f"{self.name} ile diyalog başladı")
+                        pygame.mixer.Sound("sounds/click.wav").play()
+                    else:
+                        self.current_dialogue_index += 1
+                        if self.current_dialogue_index >= len(self.dialogues):
+                            self.is_interacting = False
+                            player.is_in_dialogue = False  # Oyuncuyu diyalog modundan çıkar
+                            self.current_animation = "idle"
+                            self.frame_index = 0
+                            self.update_counter = 0
+                            print(f"{self.name} ile diyalog bitti")
+                            pygame.mixer.Sound("sounds/click.wav").play()
+                        else:
+                            print(f"{self.name} diyalog: {self.dialogues[self.current_dialogue_index]}")
+                            pygame.mixer.Sound("sounds/click.wav").play()
 # Load initial map
 load_map(current_map)
 
@@ -1535,8 +1830,17 @@ def restart_game():
 # Düşman listesi oluştur
 enemies = []
 
+
+# Font örneği
+npc_font = Font(None, 36)  # Varsayılan font, boyutu 36
+
+# Demirci örneği
+npcs = []
+blacksmith = Blacksmith(1200, 1163, 1)  # Örnek konum (800, 1120)
+npcs.append(blacksmith)
+
 # Spawn noktalarını belirle (veya Tiled'dan al)v
-enemy_spawn_points = [(600,640),(200,1024),(1592,96)]  # Örnek spawn noktaları
+"""enemy_spawn_points = [(600,640),(200,1024),(1592,96)]  # Örnek spawn noktaları
 
 for spawn in enemy_spawn_points:
         ninja = NinjaMonk(ninja_idle_spritesheet, ninja_walk_spritesheet, 
@@ -1545,7 +1849,7 @@ for spawn in enemy_spawn_points:
                          spawn[0], spawn[1], 1, 2, 200)
         ninja.on_ground = False
         ninja.y_velocity = 1
-        enemies.append(ninja)
+        enemies.append(ninja)"""
 
 health_potions = []
 health_potions.append(HealthPotion(1000,1120))  # x: 300, y: 500 konumuna bir iksir ekle
@@ -1703,11 +2007,12 @@ def load_game():
         pygame.time.wait(1000)  # 1 saniye hata mesajı göster
         print("Kayıt dosyası bulunamadı!")
 
-# Oyun döngüsünde tırmanma kontrolü
 while running:
     dt = clock.tick(FPS) / 1000.0
 
-    for event in pygame.event.get():
+    # Olayları bir kez topla
+    events = pygame.event.get()
+    for event in events:
         if event.type == pygame.QUIT:
             running = False
         if event.type == pygame.USEREVENT:
@@ -1721,19 +2026,19 @@ while running:
                 moving_left = True
             if event.key == pygame.K_d:
                 moving_right = True
-            if event.key == pygame.K_SPACE:  # Zıplama tuşu
+            if event.key == pygame.K_SPACE:
                 player.jump()
             if event.key == pygame.K_j:
                 player.attack(1)
-            if  current_map=="frozen_cave" or current_map=="cyberpunk" or current_map=="lab":
-               if event.key == pygame.K_k:
-                   player.attack(2)
+            if current_map in ["frozen_cave", "cyberpunk", "lab"]:
+                if event.key == pygame.K_k:
+                    player.attack(2)
             if event.key == pygame.K_l:
-               if current_map=="cyberpunk" or current_map=="lab":
-                   player.attack(3)
-            if current_map=="lab":
-              if event.key == pygame.K_o:
-                  player.shoot(arrows)
+                if current_map in ["cyberpunk", "lab"]:
+                    player.attack(3)
+            if current_map == "lab":
+                if event.key == pygame.K_o:
+                    player.shoot(arrows)
             if event.key in (pygame.K_LSHIFT, pygame.K_RSHIFT):
                 running_fast = True
             if game_over and event.key == pygame.K_r:
@@ -1762,10 +2067,15 @@ while running:
             if event.key in (pygame.K_LSHIFT, pygame.K_RSHIFT):
                 running_fast = False
             if event.key == pygame.K_SPACE:
-                player.release_jump()  # Zıplama tuşu bırakıldığında
-            
+                player.release_jump()
+
+    # Oyuncuyu güncelle
     player.move(moving_left, moving_right, running_fast, collision_rects)
     player.update(collision_rects, spike_rects, enemies, arrows, dt)
+
+    # NPC'leri güncelle
+    for npc in npcs:
+        npc.update(player, events)  # Aynı olay listesini kullan
 
     check_potion_collisions()
 
@@ -1800,6 +2110,11 @@ while running:
     # İksirleri çiz
     for potion in health_potions:
         potion.draw(screen, camera_x, camera_y)
+
+
+    # Çizim kısmında, örneğin düşmanları çizdiğin yere ekle
+    for npc in npcs:
+        npc.draw(screen, camera_x, camera_y, npc_font, ZOOM_FACTOR)
 
     # Okları güncelle ve çiz
     arrows.update(collision_rects, enemies)
@@ -1870,4 +2185,4 @@ while running:
 
 # Quit game
 pygame.quit()
-sys.exit()
+sys.exit() 
