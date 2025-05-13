@@ -42,4 +42,5 @@ Projemizi yerel makinenizde çalıştırmak için aşağıdaki adımları izleyi
 - Python 3.x (veya projenizin gerektirdiği sürüm)
 - Pygame kütüphanesi (eğer kullanıyorsanız)
   ```bash
-  pip install
+  pip install pygame
+  pip install pytmx
