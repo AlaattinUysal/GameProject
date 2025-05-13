@@ -39,8 +39,9 @@ Repository’miz, modüler bir geliştirme yaklaşımıyla organize edilmiştir:
 Projemizi yerel makinenizde çalıştırmak için aşağıdaki adımları izleyin:
 
 ### Gereksinimler
-- Python 3.x (veya projenizin gerektirdiği sürüm)
-- Pygame kütüphanesi (eğer kullanıyorsanız)
+- Python 3.x
+- Pygame kütüphanesi 
+- Pytmx kütüphanesi
   ```bash
   pip install pygame
   pip install pytmx
