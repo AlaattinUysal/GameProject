@@ -1,6 +1,8 @@
 # game_state.py
 import pygame
 from utils import Font
+from soundmanager import sound_manager
+
 class GameState:
     def __init__(self):
         self.screen_width = 1200
@@ -33,8 +35,36 @@ class GameState:
         self.collision_rects = []
         self.spike_rects = []
         self.health_potions = []
-        self.font = Font(None, 24)
-        self.font_big = Font(None, 36)
+        self.font = Font(None, 28)
+        self.font_big = Font(None, 48)
         self.clock = pygame.time.Clock()
+
+        self.map_characters = {
+            "village": {
+                "npcs": [
+                    {"type": "Blacksmith", "x": 1200, "y": 1163, "scale": 1}
+                ],
+                "enemies": []  # Village'da düşman yok
+            },
+            "frozen_cave": {
+                "npcs": [{"type": "Trader", "x": 2300, "y": 832, "scale": 1}],  # Örnek: Yeni NPC eklenebilir #2250,768
+                "enemies": [
+                    {"type": "NinjaMonk", "x": 800, "y": 1000, "scale": 1, "speed": 2, "range": 200}
+                ]
+            },
+            "cyberpunk": {
+                "npcs": [],  # Örnek: Yeni NPC eklenebilir
+                "enemies": [
+                    {"type": "NinjaMonk", "x": 900, "y": 1100, "scale": 1, "speed": 2, "range": 200},
+                    {"type": "NinjaMonk", "x": 1100, "y": 1100, "scale": 1, "speed": 2, "range": 200}
+                ]
+            },
+            "lab": {
+                "npcs": [],  # Örnek: Yeni NPC eklenebilir
+                "enemies": [
+                    {"type": "NinjaMonk", "x": 1000, "y": 1200, "scale": 1, "speed": 2, "range": 200}
+                ]
+            }
+        }
 
 game_state = GameState()
