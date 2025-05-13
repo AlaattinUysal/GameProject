@@ -1,5 +1,4 @@
 import pygame
-#2250,768
 import pytmx
 import sys
 import json
