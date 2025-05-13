@@ -1,6 +1,6 @@
 import pygame
 from game_state import game_state
-
+from soundmanager import sound_manager
 
 class Arrow(pygame.sprite.Sprite):
     # Class variable for the sound - load this once
@@ -8,47 +8,37 @@ class Arrow(pygame.sprite.Sprite):
     
     def __init__(self, x, y, direction, speed=8):
         pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.image.load("player sprite sheets/Arrow.png").convert_alpha()  # Ok görseli
+        self.image = pygame.image.load("player sprite sheets/Arrow.png").convert_alpha()
         self.rect = self.image.get_rect()
         self.rect.center = (x, y+15)
         self.speed = speed
         self.direction = direction  # 1: sağ, -1: sol
-        self.damage = 25  # Okun vereceği hasar
+        self.damage = 25
         
-        # Load the sound if it hasn't been loaded yet
-        if Arrow.hit_sound is None:
-            Arrow.hit_sound = pygame.mixer.Sound("sounds/arrow_hit.wav")  # Ses dosyasının adını değiştirin
+        # hit_sound artık SoundManager'da yönetiliyor
     
     def update(self, collision_rects, enemies):
-        # Okun hareketi
         self.rect.x += self.speed * self.direction
-        
-        # Duvarlarla çarpışma kontrolü
         for rect in collision_rects:
             if self.rect.colliderect(rect):
-                self.kill()  # Duvara çarparsa oku kaldır
+                self.kill()
                 return
-        
-        # Düşmanlarla çarpışma kontrolü
         for enemy in enemies:
             if enemy.alive and self.rect.colliderect(enemy.hitbox):
                 enemy.get_hit(self.damage)
-                # Ses çal
-                pygame.mixer.Channel(2).play(Arrow.hit_sound)  # 2 numaralı kanalı kullan (değiştirilebilir)
-                Arrow.hit_sound.set_volume(0.5)  # 50% volume
-                self.kill()  # Düşmana çarparsa oku kaldır
+                sound_manager.play_sound("arrow_hit", volume=0.5)
+                self.kill()
                 return
     
     def draw(self, surface, camera_x, camera_y):
-        screen_x = (self.rect.x - camera_x) * game_state.game_state.zoom_factor
-        screen_y = (self.rect.y - camera_y) * game_state.game_state.zoom_factor
+        screen_x = (self.rect.x - camera_x) * game_state.zoom_factor
+        screen_y = (self.rect.y - camera_y) * game_state.zoom_factor
         scaled_image = pygame.transform.scale(self.image,
-                                             (int(self.rect.width * game_state.game_state.zoom_factor),
-                                              int(self.rect.height * game_state.game_state.zoom_factor)))
-        if self.direction == -1:  # Sola giderken oku çevir
+                                             (int(self.rect.width * game_state.zoom_factor),
+                                              int(self.rect.height * game_state.zoom_factor)))
+        if self.direction == -1:
             scaled_image = pygame.transform.flip(scaled_image, True, False)
         surface.blit(scaled_image, (screen_x, screen_y))
-
 
 class Samurai(pygame.sprite.Sprite):
     def __init__(self, walk_spritesheet, idle_spritesheet, jump_spritesheet, 
@@ -373,8 +363,7 @@ class Samurai(pygame.sprite.Sprite):
         self.potions_collected += 1
         self.health = min(self.health + 50, self.max_health)
         print(f"İksir toplandı! +50 can, Toplam can: {self.health}/{self.max_health}")
-        potion_sound = pygame.mixer.Sound("sounds/potion.wav")
-        pygame.mixer.Channel(1).play(potion_sound)
+        sound_manager.play_sound("potion")
         if self.potions_collected % 3 == 0:
             self.increase_max_health(20)
 
@@ -442,7 +431,6 @@ class Samurai(pygame.sprite.Sprite):
 
 
     def check_hit_enemies(self, enemies):
-        """Düşman yenildiğinde hasar artışı"""
         current_time = pygame.time.get_ticks()
         if self.is_attacking and not self.attack_finished:
             if self.frame_index == len(self.current_attack_frames) // 2:
@@ -450,15 +438,14 @@ class Samurai(pygame.sprite.Sprite):
                 for enemy in enemies:
                     if enemy.alive and self.attack_hitbox.colliderect(enemy.hitbox):
                         enemy.get_hit(self.attack_damage)
-                        if not enemy.alive:  # Düşman öldüyse
+                        if not enemy.alive:
                             self.enemies_defeated += 1
-                            if self.enemies_defeated % 5 == 0:  # Her 5 düşmanda hasar artar
+                            if self.enemies_defeated % 5 == 0:
                                 self.increase_attack_damage(5)
                         if not self.sound_triggered and current_time - self.last_hit_sound_time > self.hit_sound_cooldown:
-                            if not game_state.hit_channel.get_busy():
-                                game_state.hit_channel.play(game_state.hit_sound)
-                                self.last_hit_sound_time = current_time
-                                self.sound_triggered = True
+                            sound_manager.play_sound("hit")
+                            self.last_hit_sound_time = current_time
+                            self.sound_triggered = True
                         return True
         return False
     
@@ -615,9 +602,14 @@ class Samurai(pygame.sprite.Sprite):
 
         # Draw arrow count if available
         if hasattr(self, 'arrow_count'):
-            arrow_text = game_state.font.render(f"Arrows: {self.arrow_count}", True, (255, 255, 255))
-            surface.blit(arrow_text, (10, 90))
-
+            # Arrow yazısını iyileştirilmiş şekilde render et
+            arrow_text = game_state.font.render(
+                f"Arrows: {self.arrow_count}",
+                color=(255, 255, 0),  # Sarı renk
+                shadow=True,
+                background=(50, 50, 50, 150)  # Hafif şeffaf gri arka plan
+            )
+            surface.blit(arrow_text, (10, 90))  # Sol üst köşe, FPS ve status'un altına
         self.draw_health_bar(surface, camera_x, camera_y)
 
 
