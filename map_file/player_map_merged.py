@@ -9,7 +9,7 @@ pygame.init()
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption('Game')
+pygame.display.set_caption('The Way')
 clock = pygame.time.Clock()
 FPS = 60
 
@@ -26,10 +26,64 @@ tile_cache = {}
 parallax_factors_x = {}
 parallax_factors_y = {}
 
+class PotionSpritesheet:
+    def __init__(self, file):
+        self.sheet = pygame.image.load(file).convert_alpha()
+        self.frame_width = self.sheet.get_width() // 3  # 3x3 ızgara (9 kare)
+        self.frame_height = self.sheet.get_height() // 3
+        self.frames = []
+        for y in range(3):
+            for x in range(3):
+                frame = pygame.Surface((self.frame_width, self.frame_height), pygame.SRCALPHA)
+                frame.blit(self.sheet, (0, 0), (x * self.frame_width, y * self.frame_height, self.frame_width, self.frame_height))
+                self.frames.append(frame)
+
+class HealthPotion(pygame.sprite.Sprite):
+    def __init__(self, x, y, healing_amount, spritesheet):
+        pygame.sprite.Sprite.__init__(self)     
+        self.frames = spritesheet.frames
+        self.current_frame = 0
+        self.animation_speed = 0.1
+        self.animation_timer = 0
+        self.original_image = self.frames[self.current_frame]
+        
+        self.healing_amount = healing_amount
+        self.rect = self.original_image.get_rect()
+        self.rect.topleft = (x, y)
+        self.hitbox = self.rect.inflate(-self.rect.width // 8, -self.rect.height // 8)  # %12.5 daha küçük hitbox
+        
+        self.scaled_image_cache = {}
+
+    def update(self):
+        self.animation_timer += self.animation_speed
+        if self.animation_timer >= 1:
+            self.animation_timer = 0
+            self.current_frame = (self.current_frame + 1) % len(self.frames)
+            self.original_image = self.frames[self.current_frame]
+        self.hitbox.topleft = self.rect.topleft
+
+    def draw(self, surface, camera_x, camera_y):
+        screen_x = (self.rect.x - camera_x) * ZOOM_FACTOR
+        screen_y = (self.rect.y - camera_y) * ZOOM_FACTOR
+        scaled_width = int(self.rect.width * ZOOM_FACTOR)
+        scaled_height = int(self.rect.height * ZOOM_FACTOR)
+        
+        cache_key = (id(self.original_image), ZOOM_FACTOR)
+        if cache_key not in self.scaled_image_cache:
+            scaled_image = pygame.transform.scale(self.original_image, (scaled_width, scaled_height))
+            self.scaled_image_cache[cache_key] = scaled_image
+        
+        surface.blit(self.scaled_image_cache[cache_key], (screen_x, screen_y))
+        
 def load_map(map_name):
     """Load a map and extract its data"""
     global tmx_data, map_width, map_height, collision_rects, spike_rects
     global transition_rects, parallax_factors_x, parallax_factors_y
+    global health_potions
+    
+    if not hasattr(load_map, 'potion_spritesheet'):
+        sprite_path = "health potion/health 48x48.png"
+        load_map.potion_spritesheet = PotionSpritesheet(sprite_path)
     
     # If map is already cached, use cached data
     if map_name in maps_data:
@@ -42,10 +96,16 @@ def load_map(map_name):
         transition_rects = map_data["transition_rects"]
         parallax_factors_x = map_data["parallax_factors_x"]
         parallax_factors_y = map_data["parallax_factors_y"]
+        if "health_potions" in map_data:
+            health_potions = map_data["health_potions"]
+        else:
+            health_potions = pygame.sprite.Group()  # Eski cache'de yoksa yeni oluştur
         return
     
     # Clear caches when loading a new map
     tile_cache.clear()
+    if 'player' in globals() and hasattr(player, 'scaled_image_cache'):
+        player.scaled_image_cache.clear()
     
     # Only clear player image cache if player exists
     if 'player' in globals() and hasattr(player, 'scaled_image_cache'):
@@ -72,8 +132,12 @@ def load_map(map_name):
         if isinstance(layer, pytmx.TiledObjectGroup) and layer.name.lower() == "hazards":
             for obj in layer:
                 if hasattr(obj, 'x') and hasattr(obj, 'y'):
-                    rect = pygame.Rect(obj.x, obj.y, obj.width, obj.height)
-                    spike_rects.append(rect)
+                    props = getattr(obj, 'properties', {})
+                    damage_amount = props.get('damage_amount', 10)  # Varsayılan 10 hasar
+                    spike_rects.append({
+                        'rect': pygame.Rect(obj.x, obj.y, obj.width, obj.height),
+                        'damage_amount': damage_amount
+                    })
     
     # Extract transition zones
     transition_rects = {}
@@ -93,9 +157,18 @@ def load_map(map_name):
                             'info': transition_info
                         }
     
+    health_potions = pygame.sprite.Group()
+    for layer in tmx_data.layers:
+        if isinstance(layer, pytmx.TiledObjectGroup) and layer.name == "Potions":
+            for obj in layer:
+                props = getattr(obj, 'properties', {})
+                healing_amount = props.get('healing_amount', 20)
+                potion = HealthPotion(obj.x, obj.y, healing_amount, load_map.potion_spritesheet)
+                health_potions.add(potion)
+
     # Extract parallax factors
     update_parallax_factors()
-    
+
     # Cache the map data
     maps_data[map_name] = {
         "tmx_data": tmx_data,
@@ -105,11 +178,12 @@ def load_map(map_name):
         "spike_rects": spike_rects,
         "transition_rects": transition_rects,
         "parallax_factors_x": parallax_factors_x,
-        "parallax_factors_y": parallax_factors_y
+        "parallax_factors_y": parallax_factors_y,
+        "health_potions": health_potions 
     }
 
 def update_parallax_factors():
-    """Update parallax factors for the current map"""
+    #Update parallax factors for the current map
     global parallax_factors_x, parallax_factors_y
     
     parallax_factors_x = {}
@@ -147,7 +221,7 @@ def update_parallax_factors():
                     parallax_factors_y[layer.name] = 0.5
 
 def find_spawn_point(spawn_name="spawn_point"):
-    """Find spawn point with given name in the current map"""
+    #Find spawn point with given name in the current map
     default_spawn = (250, 1200)  # Default position if no spawn found
     
     for layer in tmx_data.layers:
@@ -160,7 +234,7 @@ def find_spawn_point(spawn_name="spawn_point"):
     return default_spawn
 
 def check_map_transitions():
-    """Check if player is in a transition zone, change map if needed"""
+    #Check if player is in a transition zone, change map if needed
     global current_map, camera_x, camera_y, camera
     
     for transition_name, transition_data in transition_rects.items():
@@ -322,6 +396,7 @@ def draw_layer(layer, surface, camera_x, camera_y):
                         screen_y = (y - start_y) * tmx_data.tileheight * ZOOM_FACTOR + offset_y
                         surface.blit(tile_cache[cache_key], (screen_x, screen_y))
 
+
 # Samurai (Player) class
 class Samurai(pygame.sprite.Sprite):
     def __init__(self, walk_spritesheet, idle_spritesheet, jump_spritesheet, 
@@ -338,11 +413,13 @@ class Samurai(pygame.sprite.Sprite):
         self.is_jumping = False
         self.is_attacking = False
         self.attack_finished = True
-        self.jump_power = -10.5
+        self.jump_power = -12.0
         self.y_velocity = 0
         self.gravity = 0.5
         self.max_fall_speed = 10
         self.on_ground = False
+        self.max_health = 100
+        self.health = 60 
 
         # Animations
         self.walk_frames = walk_spritesheet.get_animation_frames(128, 128, scale)
@@ -495,16 +572,30 @@ class Samurai(pygame.sprite.Sprite):
             frames = self.idle_frames
             self.frame_index = (self.frame_index + 1) % len(frames)
             self.image = frames[self.frame_index]
+        
+    # Sağlık toplama metodu
+    def heal(self, amount):
+        if self.health < self.max_health:
+            old_health = self.health
+            self.health = min(self.health + amount, self.max_health)
+            if old_health != self.health:
+                print(f"Can artti! Mevcut can: {self.health}/{self.max_health}")
+                return True
+        return False
 
-    def get_hit(self):
-        print("Character took damage!")
+    def get_hit(self, amount=10):
+        if self.health > 0:
+            old_health = self.health
+            self.health = max(0, self.health - amount)
+            if old_health != self.health:
+                print(f"Hasar alindi! Hasar miktari: {amount}, Mevcut can: {self.health}/{self.max_health}")
 
     def update(self, collision_rects, spike_rects):
         self.check_on_ground(collision_rects)
         
-        for spike_rect in spike_rects:
-            if self.hitbox.colliderect(spike_rect):
-                self.get_hit()
+        for spike in spike_rects:
+            if self.hitbox.colliderect(spike['rect']):
+                self.get_hit(spike['damage_amount'])
 
         self.y_velocity += self.gravity
         if self.y_velocity > self.max_fall_speed:
@@ -529,20 +620,6 @@ class Samurai(pygame.sprite.Sprite):
             self.scaled_image_cache[cache_key] = pygame.transform.flip(scaled_image, self.flip, False)
         
         surface.blit(self.scaled_image_cache[cache_key], (screen_x, screen_y))
-        
-        debug = False
-        if debug:
-            hitbox_x = (self.hitbox.x - camera_x) * ZOOM_FACTOR
-            hitbox_y = (self.hitbox.y - camera_y) * ZOOM_FACTOR
-            hitbox_width = self.hitbox.width * ZOOM_FACTOR
-            hitbox_height = self.hitbox.height * ZOOM_FACTOR
-            pygame.draw.rect(surface, (255, 0, 0), (hitbox_x, hitbox_y, hitbox_width, hitbox_height), 2)
-            
-            ground_x = (self.ground_check.x - camera_x) * ZOOM_FACTOR
-            ground_y = (self.ground_check.y - camera_y) * ZOOM_FACTOR
-            ground_width = self.ground_check.width * ZOOM_FACTOR
-            ground_height = self.ground_check.height * ZOOM_FACTOR
-            pygame.draw.rect(surface, (0, 255, 0), (ground_x, ground_y, ground_width, ground_height), 2)
 
 # Load initial map
 load_map(current_map)
@@ -646,9 +723,26 @@ while running:
     for i, layer in enumerate(tmx_data.layers):
         if i < front_layer_index and isinstance(layer, pytmx.TiledTileLayer):
             draw_layer(layer, screen, camera_x, camera_y)
+
+    for potion in health_potions:
+            potion.update()
+
+    # İksir çarpışma kontrolü
+    potion_hits = []
+    for potion in health_potions:
+        if player.hitbox.colliderect(potion.hitbox):
+            if player.heal(potion.healing_amount):
+                potion_hits.append(potion)
     
+    # Kullanılan iksirleri kaldır
+    for potion in potion_hits:
+        health_potions.remove(potion)
+
     # Draw player
     player.draw(screen, camera_x, camera_y)
+
+    for potion in health_potions:
+        potion.draw(screen, camera_x, camera_y)
     
     # Draw foreground layers
     for i, layer in enumerate(tmx_data.layers):
@@ -660,7 +754,7 @@ while running:
     screen.blit(fps_text, (10, 10))
     
     # Show player status and current map
-    player_status = f"Map: {current_map} | Pos: ({int(player.rect.x)}, {int(player.rect.y)}) | Ground: {player.on_ground}"
+    player_status = f"Map: {current_map} | Pos: ({int(player.rect.x)}, {int(player.rect.y)})"
     status_text = font.render(player_status, True, (255, 255, 255))
     screen.blit(status_text, (10, 50))
     
