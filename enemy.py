@@ -1,6 +1,7 @@
 import pygame
 from game_state import game_state
 dt = game_state.clock.tick(game_state.fps)
+from soundmanager import sound_manager
 # NinjaMonk sınıfı - Devriye gezen ve saldıran düşman
 
 class NinjaMonk(pygame.sprite.Sprite):
@@ -366,7 +367,7 @@ class NinjaMonk(pygame.sprite.Sprite):
                 if self.attack_hitbox.colliderect(player.hitbox):
                     player.get_hit(self.attack_damage)
                     # Play hit sound when enemy successfully hits player
-                    pygame.mixer.Channel(2).play(game_state.hit_sound)  # Use channel 2 to avoid conflicts with other sounds
+                    sound_manager.play_sound("hit")
                     return True
         return False
 
