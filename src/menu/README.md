@@ -11,6 +11,7 @@ src-menu/
 │   ├── ui.py           # UI components (buttons, sliders, text input boxes)
 │   ├── scenes.py       # Different menu screens (main menu, options, settings, etc.)
 │   └── main.py         # Main Menu class that handles the scene system and game flow
+|--menu.py   #should be seperated menu/ file
 ├── .gitignore
 ├── README.md
 └── LICENSE
