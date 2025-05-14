@@ -4,13 +4,13 @@
 
 ```
 src-menu/
-├── menu/
-│   ├── init.py         # Makes the menu directory a Python package
-│   ├── constants.py    # Constants (colors, screen dimensions, etc.)
-│   ├── assets.py       # Functions for loading assets (background, characters, fonts)
-│   ├── ui.py           # UI-related classes (PixelButton, Slider, etc.)
-│   ├── menu_logic.py   # Main Menu class and its logic
-│   └── main.py         # Entry point to run the menu
+├── menu/              
+│   ├── init.py         # Package initialization
+│   ├── constants.py    # Constants, configurations and shared settings
+│   ├── assets.py       # Assets loading (fonts, backgrounds, characters, music)
+│   ├── ui.py           # UI components (buttons, sliders, text input boxes)
+│   ├── scenes.py       # Different menu screens (main menu, options, settings, etc.)
+│   └── main.py         # Main Menu class that handles the scene system and game flow
 ├── .gitignore
 ├── README.md
 └── LICENSE
