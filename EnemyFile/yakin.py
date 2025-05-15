@@ -21,7 +21,26 @@ class Yakin(Dusman):
         self.son_ziplama_zamani = 0
         self.ziplama_bekleme_suresi = 500
         self.onceki_durum = "devriye"
-
+        self.alerted = False
+        self.view_angle=90
+        self.attack_count=2
+        self.attacks=["Attack_1", "Attack_2", "Attack_3"]
+        self.available_attacks=self.attacks[:self.attack_count]
+        
+    
+    def is_facing_away(self, hedef):
+        return (self.sola_donuk and hedef.x > self.x) or (not self.sola_donuk and hedef.x < self.x)
+    
+    def can_see_player(self, hedef):
+        mesafe = self.mesafe_hesapla(hedef.x, hedef.y)
+        if mesafe > self.tespit_mesafesi:
+            return False
+        
+        angle_to_player = math.degrees(math.atan2(hedef.y - self.y, hedef.x - self.x))
+        facing_angle=180 if self.sola_donuk else 0
+        angle_diff=abs((angle_to_player - facing_angle+180)%360-180)
+        return angle_diff<=self.view_angle/2
+    
     def platform_kontrolu(self, collision_rects, hedef_x, hedef_y):
         simdiki_zaman = pygame.time.get_ticks()
         if simdiki_zaman - self.son_ziplama_zamani < self.ziplama_bekleme_suresi or not self.on_ground:
@@ -131,7 +150,7 @@ class Yakin(Dusman):
         simdiki_zaman = pygame.time.get_ticks()
         if simdiki_zaman - self.son_saldiri_zamani >= self.saldiri_bekleme_suresi:
             self.vuruyor = True
-            self.mevcut_animasyon = random.choice(["Attack_1", "Attack_2"])
+            self.mevcut_animasyon = random.choice(self.available_attacks)
             self.kare_indeksi = 0
             self.son_saldiri_zamani = simdiki_zaman
             self.sola_donuk = hedef.x < self.x
@@ -155,7 +174,8 @@ class Yakin(Dusman):
             self.durum = "devriye"
         elif mesafe <= self.saldiri_mesafesi:
             self.durum = "saldiri"
-        elif mesafe <= self.tespit_mesafesi:
+        elif mesafe <= self.tespit_mesafesi and (self.alerted or (self.can_see_player(hedef) 
+        and not self.is_facing_away(hedef))):
             self.durum = "takip"
         else:
             self.durum = "devriye"
