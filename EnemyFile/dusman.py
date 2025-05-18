@@ -100,7 +100,7 @@ class Dusman:
                             self.kare_indeksi = 0
                         else:
                             self.kare_indeksi = (self.kare_indeksi + 1) % len(animation_frames)
-                    elif self.mevcut_animasyon in ["Attack_1", "Attack_2", "Fireball"]:
+                    elif self.mevcut_animasyon in ["Attack_1", "Attack_2", "Attack_3","Attack_4","Fire"]:
                         if self.kare_indeksi >= len(animation_frames) - 1:
                             self.vuruyor = False
                             self.mevcut_animasyon = "Idle"
@@ -143,6 +143,7 @@ class Dusman:
             return
         self.can -= miktar
         self.vuruldu = True
+        self.alerted=True
         self.mevcut_animasyon = "Hurt"
         self.kare_indeksi = 0
         if self.can <= 0:
