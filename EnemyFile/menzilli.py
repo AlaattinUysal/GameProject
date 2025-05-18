@@ -1,6 +1,7 @@
 import pygame
 import math
 import os
+import random
 from yakin import Yakin
 
 class Mermi:
@@ -74,34 +75,92 @@ class Menzilli(Yakin):
     def __init__(self, x, y, hiz, can, guc, sprite_klasoru, animasyonlar, sprite_soneki):
         super().__init__(x, y, hiz, can, guc, sprite_klasoru, animasyonlar, sprite_soneki)
         self.mermi_hizi = 4
-        self.mermi_menzili = 500
-        self.saldiri_mesafesi = 300
+        self.mermi_menzili = 200
+        self.menzilli_saldiri_mesafesi = 300
         self.mermiler = []
 
     def saldiri(self, hedef):
         if not hedef.canli_mi() or not self.canli_mi():
             return
         simdiki_zaman = pygame.time.get_ticks()
-        if not self.vuruyor and simdiki_zaman - self.son_saldiri_zamani >= self.saldiri_bekleme_suresi:
-            self.vuruyor = True
-            self.mevcut_animasyon = "Fireball"
-            self.kare_indeksi = 0
-            self.sola_donuk = hedef.x < self.x
+
+        if simdiki_zaman - self.son_saldiri_zamani < self.saldiri_bekleme_suresi:
+            if not self.vuruyor and self.on_ground and not self.vuruldu:
+                self.animasyon_degistir("Idle")
+            return
+        
+        mesafe = self.mesafe_hesapla(hedef.x, hedef.y)
+        self.sola_donuk = hedef.x < self.x
+
+        if mesafe<=self.saldiri_mesafesi:
+            self.vuruyor=True
+            self.mevcut_animasyon=random.choice(self.available_attacks)
+            self.kare_indeksi=0
+            hedef.hasar_al(self.guc)
+            self.son_saldiri_zamani=simdiki_zaman
+
+        elif mesafe <=self.menzilli_saldiri_mesafesi:
+            self.vuruyor=True
+            self.mevcut_animasyon="Fire"
+            self.kare_indeksi=0
+            mermi_kare_sayisi=len(self.animasyonlar.get("Charge", []))
             mermi = Mermi(
                 self.x, self.y, hedef.x, hedef.y, self.mermi_hizi, self.guc,
-                sprite_klasoru="ENEMIES/wizard/Fire vizard", sprite_soneki="fire", kare_sayisi=6
+                sprite_klasoru=self.sprite_klasoru,
+                sprite_soneki=self.sprite_soneki,
+                kare_sayisi=mermi_kare_sayisi
             )
             self.mermiler.append(mermi)
-            self.son_saldiri_zamani = simdiki_zaman
+            self.son_saldiri_zamani=simdiki_zaman
+        
+        elif mesafe<=self.tespit_mesafesi:
+            self.vuruyor=True
+            if self.on_ground and not self.vuruldu:
+                self.animasyon_degistir("Walk")
+            self.takip_et(hedef.x,hedef.y, [])
+        
+        else:
+            self.vuruyor=False
+            if self.on_ground and not self.vuruldu:
+                self.animasyon_degistir("Idle")
+            self.devriye_et([])
 
     def guncelle(self, hedef, collision_rects):
-        super().guncelle(hedef, collision_rects)
+        self.update_physics(collision_rects)
+        if not self.canli_mi():
+            if self.mevcut_animasyon != "Dead":
+                self.mevcut_animasyon = "Dead"
+                self.kare_indeksi = 0
+            return
+        
+        mesafe = self.mesafe_hesapla(hedef.x, hedef.y)
+        self.onceki_durum = self.durum
+
+        if not hedef.canli_mi():
+            self.durum = "devriye"
+        elif mesafe <= self.saldiri_mesafesi and (self.alerted or (self.can_see_player(hedef) and not self.is_facing_away(hedef))):
+            self.durum = "saldiri"
+        elif isinstance(self, Menzilli) and mesafe <= self.menzilli_saldiri_mesafesi and (self.alerted or (self.can_see_player(hedef) and not self.is_facing_away(hedef))):
+            self.durum = "saldiri"  
+        elif mesafe <= self.tespit_mesafesi and (self.alerted or (self.can_see_player(hedef) and not self.is_facing_away(hedef))):
+            self.durum = "takip"
+        else:
+            self.durum = "devriye"
+
+        if self.durum == "devriye":
+            self.devriye_et(collision_rects)
+        elif self.durum == "takip":
+            self.takip_et(hedef.x, hedef.y, collision_rects)
+        elif self.durum == "saldiri":
+            self.saldiri(hedef)
+
         for mermi in self.mermiler[:]:
             mermi.guncelle()
             if mermi.carpisma_kontrolu(hedef):
                 self.mermiler.remove(mermi)
             elif self.mesafe_hesapla(mermi.x, mermi.y) > self.mermi_menzili:
                 self.mermiler.remove(mermi)
+        
 
     def ciz(self, ekran, camera_x, camera_y):
         super().ciz(ekran, camera_x, camera_y)
