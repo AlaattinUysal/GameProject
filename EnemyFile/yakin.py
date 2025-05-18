@@ -10,6 +10,7 @@ class Yakin(Dusman):
         self.baslangic_y = y
         self.tespit_mesafesi = 300
         self.saldiri_mesafesi = 80
+        self.menzilli_saldiri_mesafesi=300
         self.durum = "devriye"
         self.devriye_noktasi_1 = (x - 150, y)
         self.devriye_noktasi_2 = (x + 150, y)
@@ -24,7 +25,7 @@ class Yakin(Dusman):
         self.alerted = False
         self.view_angle=90
         self.attack_count=2
-        self.attacks=["Attack_1", "Attack_2", "Attack_3"]
+        self.attacks=["Attack_1", "Attack_2", "Attack_3","Attack_4"]
         self.available_attacks=self.attacks[:self.attack_count]
         
     
@@ -135,7 +136,10 @@ class Yakin(Dusman):
                 move_dx = handle_horizontal_collisions(move_dx)
                 self.sola_donuk = dx < 0
                 if self.on_ground and self.mevcut_animasyon != "Jump":
-                    self.animasyon_degistir("Run")
+                    if "Run" in self.animasyonlar:
+                        self.animasyon_degistir("Run")
+                    else:
+                        self.animasyon_degistir("Walk")
             else:
                 if self.on_ground and self.mevcut_animasyon != "Jump":
                     self.animasyon_degistir("Idle")
@@ -172,8 +176,12 @@ class Yakin(Dusman):
         self.onceki_durum = self.durum
         if not hedef.canli_mi():
             self.durum = "devriye"
-        elif mesafe <= self.saldiri_mesafesi:
-            self.durum = "saldiri"
+        elif mesafe <= self.saldiri_mesafesi and (self.alerted or (self.can_see_player(hedef) 
+        and not self.is_facing_away(hedef))):
+            self.durum = "takip"
+        elif mesafe <=self.menzilli_saldiri_mesafesi and (self.alerted or (self.can_see_player(hedef)
+        and not self.is_facing_away(hedef)))                                                                    :
+            self.durum="takip"
         elif mesafe <= self.tespit_mesafesi and (self.alerted or (self.can_see_player(hedef) 
         and not self.is_facing_away(hedef))):
             self.durum = "takip"
