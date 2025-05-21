@@ -3,31 +3,20 @@ import pytmx
 import sys
 import json
 import pygame.time
-from npc import Blacksmith, Trader  # Trader'ı içe aktar
+from npc import Blacksmith, Trader
 from game_state import game_state
 from camera import Camera
-from enemy import NinjaMonk
 from map import load_map, check_map_transitions, draw_layer, find_spawn_point
 from player import Samurai
 from utils import Spritesheet
 from soundmanager import sound_manager
 from items import HealthPotion
+#from enemy_types import NinjaMonk, NinjaPeasant
 
 pygame.init()
 screen = pygame.display.set_mode((game_state.screen_width, game_state.screen_height))
-pygame.display.set_caption("Samurai's path")
+pygame.display.set_caption("Samurai's Path")
 clock = pygame.time.Clock()
-
-def check_potion_collisions():
-    for potion in game_state.health_potions:
-        if not potion.collected and player.hitbox.colliderect(potion.rect):
-            if player.health == player.max_health:
-                print("Canın zaten dolu, iksir alınamaz!")
-                continue
-            potion.collected = True
-            player.collect_potion()
-            print("Health potion collected!")
-            break
 
 def set_zoom(factor):
     game_state.zoom_factor = max(0.5, min(factor, 3))
@@ -72,31 +61,12 @@ def load_map_characters():
             npc = Blacksmith(x, y, scale)
             npcs.append(npc)
             print(f"{npc_type} yüklendi: ({x}, {y})")
-
         elif npc_type == "Trader":
             npc = Trader(x, y, scale)
             npcs.append(npc)
             print(f"{npc_type} yüklendi: ({x}, {y})")
         else:
             print(f"Uyarı: Bilinmeyen NPC türü: {npc_type}")
-    
-    for enemy_data in game_state.map_characters[current_map]["enemies"]:
-        enemy_type = enemy_data["type"]
-        x, y = enemy_data["x"], enemy_data["y"]
-        scale = enemy_data.get("scale", 1)
-        speed = enemy_data.get("speed", 2)
-        range_ = enemy_data.get("range", 200)
-        if enemy_type == "NinjaMonk":
-            enemy = NinjaMonk(
-                ninja_idle_spritesheet, ninja_walk_spritesheet,
-                ninja_attack_spritesheet, ninja_hurt_spritesheet,
-                ninja_death_spritesheet,
-                x, y, scale, speed, range_
-            )
-            enemies.append(enemy)
-            print(f"{enemy_type} yüklendi: ({x}, {y})")
-        else:
-            print(f"Uyarı: Bilinmeyen düşman türü: {enemy_type}")
 
 try:
     load_map(game_state.current_map)
@@ -146,14 +116,7 @@ def save_game():
         "attack_damage": player.attack_damage,
         "arrow_count": player.arrow_count,
         "current_map": game_state.current_map,
-        "enemies": [
-            {
-                "pos": (enemy.rect.x, enemy.rect.y),
-                "health": enemy.health,
-                "alive": enemy.alive,
-                "initial_position": enemy.initial_position
-            } for enemy in enemies
-        ],
+        "enemies": [],
         "health_potions": [
             {
                 "pos": (potion.rect.x, potion.rect.y),
@@ -161,13 +124,13 @@ def save_game():
             } for potion in game_state.health_potions
         ],
         "npcs": [
-                {
-                    "type": npc.name,
-                    "pos": [npc.rect.x, npc.rect.y],
-                    "scale": npc.scale if hasattr(npc, "scale") else 1,
-                    "dialogue_index": npc.dialogue_index
-                } for npc in npcs
-            ]
+            {
+                "type": npc.name,
+                "pos": [npc.rect.x, npc.rect.y],
+                "scale": npc.scale if hasattr(npc, "scale") else 1,
+                "dialogue_index": npc.current_dialogue_index
+            } for npc in npcs
+        ]
     }
     try:
         with open("savegame.json", "w") as f:
@@ -181,6 +144,7 @@ def save_game():
         print("Oyun kaydedildi!")
     except Exception as e:
         print(f"Oyun kaydedilirken hata: {e}")
+
 def load_game(screen):
     global game_state, player, enemies, camera, npcs
     loading_text = game_state.font_big.render("Loading...", color=(255, 255, 255), shadow=True)
@@ -192,7 +156,6 @@ def load_game(screen):
     try:
         with open("savegame.json", "r") as f:
             save_data = json.load(f)
-            # Oyuncu verilerini yükle
             player.rect.x = save_data["player_pos"][0]
             player.rect.y = save_data["player_pos"][1]
             player.health = save_data["health"]
@@ -202,35 +165,19 @@ def load_game(screen):
             player.attack_damage = save_data["attack_damage"]
             player.arrow_count = save_data["arrow_count"]
             player.update_hitbox()
-            # Harita ve kamera
             game_state.current_map = save_data["current_map"]
             load_map(game_state.current_map)
             game_state.camera_x = player.rect.centerx - game_state.screen_width // (2 * game_state.zoom_factor)
             game_state.camera_y = player.rect.centery - game_state.screen_height // (2 * game_state.zoom_factor)
             camera = Camera(game_state.map_width, game_state.map_height)
-            # Düşmanları yükle
             load_map_characters()
-            for enemy_data in save_data["enemies"]:
-                for enemy in enemies:
-                    if enemy.initial_position == tuple(enemy_data["initial_position"]):
-                        enemy.health = enemy_data["health"]
-                        enemy.alive = enemy_data["alive"]
-                        enemy.rect.x = enemy_data["pos"][0]
-                        enemy.rect.y = enemy_data["pos"][1]
-                        enemy.update_hitbox()
-                        if not enemy.alive:
-                            enemy.is_dead = True
-                            enemy.death_finished = True
-                        break
-            # Sağlık iksirlerini yükle
             game_state.health_potions.clear()
             for potion_data in save_data["health_potions"]:
                 potion = HealthPotion(potion_data["pos"][0], potion_data["pos"][1])
                 potion.collected = potion_data["collected"]
                 game_state.health_potions.append(potion)
-            # NPC'leri yükle (Trader ve diğerleri)
-            npcs.empty()  # Mevcut NPC'leri temizle
-            for npc_data in save_data.get("npcs", []):  # NPC verisi yoksa boş liste
+            npcs.clear()
+            for npc_data in save_data.get("npcs", []):
                 npc_type = npc_data["type"]
                 x, y = npc_data["pos"]
                 scale = npc_data["scale"]
@@ -239,10 +186,9 @@ def load_game(screen):
                 elif npc_type == "Trader":
                     npc = Trader(x, y, scale)
                 else:
-                    continue  # Bilinmeyen NPC türü
-                npc.dialogue_index = npc_data["dialogue_index"]
-                npcs.add(npc)
-            # Başarı mesajı
+                    continue
+                npc.current_dialogue_index = npc_data["dialogue_index"]
+                npcs.append(npc)
             loaded_text = game_state.font_big.render("Game Loaded!", color=(0, 255, 0), shadow=True)
             text_rect = loaded_text.get_rect(center=(game_state.screen_width // 2, game_state.screen_height // 2))
             screen.fill((0, 0, 0))
@@ -267,6 +213,12 @@ def load_game(screen):
         pygame.display.flip()
         pygame.time.wait(1500)
 
+# Oyun başlatma
+"""enemies = pygame.sprite.Group()
+enemies.add(NinjaMonk(1300, 1200))
+enemies.add(NinjaPeasant(1900, 1200))"""
+
+
 running = True
 moving_left = False
 moving_right = False
@@ -284,7 +236,7 @@ while running:
             if event.key == pygame.K_F11:
                 save_game()
             if event.key == pygame.K_F12:
-                load_game()
+                load_game(screen)
             if event.key == pygame.K_a:
                 moving_left = True
             if event.key == pygame.K_d:
@@ -293,13 +245,13 @@ while running:
                 player.jump()
             if event.key == pygame.K_j:
                 player.attack(1)
-            if game_state.current_map in ["frozen_cave", "cyberpunk", "lab"]:
+            if game_state.current_map in ["frozen_cave", "cyberpunk", "lab", "castle"]:
                 if event.key == pygame.K_k:
                     player.attack(2)
-            if event.key == pygame.K_l:
-                if game_state.current_map in ["cyberpunk", "lab"]:
+            if game_state.current_map in ["cyberpunk", "lab", "castle"]:
+                if event.key == pygame.K_l:
                     player.attack(3)
-            if game_state.current_map == "lab":
+            if game_state.current_map in ["lab", "castle"]:
                 if event.key == pygame.K_o:
                     player.shoot(arrows)
             if event.key in (pygame.K_LSHIFT, pygame.K_RSHIFT):
@@ -327,12 +279,14 @@ while running:
                 player.release_jump()
 
     player.move(moving_left, moving_right, running_fast, game_state.collision_rects)
-    player.update(game_state.collision_rects, game_state.spike_rects, enemies, arrows, dt)
+    # Güncelleme
+    if not player.is_in_dialogue:
+        player.update(game_state.collision_rects, game_state.spike_rects, enemies, arrows, dt)
+        for enemy in enemies:
+            enemy.update(player, game_state.collision_rects)
 
     for npc in npcs:
         npc.update(player, events)
-
-    check_potion_collisions()
 
     if check_map_transitions(player):
         load_map_characters()
@@ -353,34 +307,38 @@ while running:
         if i < game_state.front_layer_index and isinstance(layer, pytmx.TiledTileLayer):
             draw_layer(layer, screen, game_state.camera_x, game_state.camera_y)
 
+    for potion in game_state.health_potions:
+        potion.update()
+
+    potion_hits = []
+    for potion in game_state.health_potions:
+        if player.hitbox.colliderect(potion.hitbox):
+            if player.heal(potion.healing_amount):
+                potion_hits.append(potion)
+    
+    for potion in potion_hits:
+        game_state.health_potions.remove(potion)
+
     player.draw(screen, game_state.camera_x, game_state.camera_y)
+
+    for potion in game_state.health_potions:
+        potion.draw(screen, game_state.camera_x, game_state.camera_y)
 
     for i, layer in enumerate(game_state.tmx_data.layers):
         if i >= game_state.front_layer_index and isinstance(layer, pytmx.TiledTileLayer):
             draw_layer(layer, screen, game_state.camera_x, game_state.camera_y)
 
-    for potion in game_state.health_potions:
-        potion.draw(screen, game_state.camera_x, game_state.camera_y)
-
     for npc in npcs:
-        npc.draw(screen, game_state.camera_x, game_state.camera_y, game_state.font, game_state.zoom_factor)
+        npc.draw(screen, game_state.camera_x, game_state.camera_y, game_state.font, game_state.zoom_factor, player)
+
+    for enemy in enemies:
+        enemy.draw(screen, game_state.camera_x, game_state.camera_y, game_state.font, game_state.zoom_factor, player)
 
     arrows.update(game_state.collision_rects, enemies)
     for arrow in arrows:
         arrow.draw(screen, game_state.camera_x, game_state.camera_y)
 
-    enemies_to_remove = []
-    for enemy in enemies:
-        enemy.update(player, game_state.collision_rects)
-        if enemy.should_remove:
-            enemies_to_remove.append(enemy)
-
-    for enemy in enemies_to_remove:
-        enemies.remove(enemy)
-
-    for enemy in enemies:
-        if enemy.alive or (enemy.is_dead and not enemy.death_finished):
-            enemy.draw(screen, game_state.camera_x, game_state.camera_y)
+    
 
     if player.is_dead and player.death_finished:
         game_state.game_over = True
@@ -398,6 +356,14 @@ while running:
     screen.blit(status_text, (10, 50))
 
     print(f"Current map: {game_state.current_map}, Player pos: ({player.rect.x}, {player.rect.y}), Camera: ({game_state.camera_x}, {game_state.camera_y})")
+
+    arrow_text = game_state.font.render(
+        f"Arrows: {player.arrow_count}",
+        color=(255, 255, 255),
+        shadow=True,
+        background=(50, 50, 50, 150))
+    
+    screen.blit(arrow_text, (10, 90))
 
     if game_state.show_message:
         game_state.message_timer -= 1
