@@ -5,8 +5,8 @@ from soundmanager import sound_manager
 
 class GameState:
     def __init__(self):
-        self.screen_width = 1200
-        self.screen_height = 600
+        self.screen_width = 1600
+        self.screen_height = 900
         self.zoom_factor = 1.5
         self.fps = 60
         self.game_over = False
@@ -34,22 +34,27 @@ class GameState:
         self.map_height = 0
         self.collision_rects = []
         self.spike_rects = []
-        self.health_potions = []
+        self.health_potions = pygame.sprite.Group()
         self.font = Font(None, 28)
         self.font_big = Font(None, 48)
         self.clock = pygame.time.Clock()
+                # State constants
+        self.DEVRIYE = "devriye"
+        self.TAKIP = "takip"
+        self.SALDIRI = "saldiri"
 
         self.map_characters = {
             "village": {
                 "npcs": [
                     {"type": "Blacksmith", "x": 1200, "y": 1163, "scale": 1}
                 ],
-                "enemies": []  # Village'da düşman yok
+                "enemies": [
+                 {"type": "NinjaMonk", "x": 1000, "y": 900}]  # Village'da düşman yok enemy_types.YamabushiTengu(1200, 1200)
             },
             "frozen_cave": {
                 "npcs": [{"type": "Trader", "x": 2300, "y": 832, "scale": 1}],  # Örnek: Yeni NPC eklenebilir #2250,768
                 "enemies": [
-                    {"type": "NinjaMonk", "x": 800, "y": 1000, "scale": 1, "speed": 2, "range": 200}
+                    {"type": "NinjaMonk", "x": 800, "y": 1000, "scale": 1}
                 ]
             },
             "cyberpunk": {
