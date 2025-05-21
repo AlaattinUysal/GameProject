@@ -341,9 +341,9 @@ class Samurai(pygame.sprite.Sprite):
             self.update_climbing()
         else:
             self.check_on_ground(collision_rects)
-            for spike_rect in spike_rects:
-                if self.hitbox.colliderect(spike_rect) and self.invincibility_counter <= 0:
-                    self.get_hit(10)
+            for spike in spike_rects:
+                if self.hitbox.colliderect(spike['rect']):
+                    self.get_hit(spike['damage_amount'])
             self.check_hit_enemies(enemies)
             self.y_velocity += self.gravity * dt * 60
             if self.y_velocity > self.max_fall_speed:
@@ -355,6 +355,8 @@ class Samurai(pygame.sprite.Sprite):
         self.update_animation(arrow_group)
         if self.is_charging:
             self.charge_time += 1
+
+        
 
     def collect_potion(self):
         self.is_collecting_potion = True
@@ -466,6 +468,15 @@ class Samurai(pygame.sprite.Sprite):
         self.invincibility_counter = 0
         self.frame_index = 0
         self.hit_sound_playing = False  # Sesin çalıp çalmadığını takip et
+
+    def heal(self, amount):
+        if self.health < self.max_health:
+            old_health = self.health
+            self.health = min(self.health + amount, self.max_health)
+            if old_health != self.health:
+                print(f"Can artti! Mevcut can: {self.health}/{self.max_health}")
+                return True
+        return False
 
     # Update the get_hit method:
     def get_hit(self, damage=10):
@@ -600,16 +611,6 @@ class Samurai(pygame.sprite.Sprite):
             surface.blit(effect_surface, (screen_x, screen_y))
             self.power_up_effect_timer -= 1
 
-        # Draw arrow count if available
-        if hasattr(self, 'arrow_count'):
-            # Arrow yazısını iyileştirilmiş şekilde render et
-            arrow_text = game_state.font.render(
-                f"Arrows: {self.arrow_count}",
-                color=(255, 255, 0),  # Sarı renk
-                shadow=True,
-                background=(50, 50, 50, 150)  # Hafif şeffaf gri arka plan
-            )
-            surface.blit(arrow_text, (10, 90))  # Sol üst köşe, FPS ve status'un altına
-        self.draw_health_bar(surface, camera_x, camera_y)
+        
 
 
