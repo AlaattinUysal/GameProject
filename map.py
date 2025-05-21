@@ -2,10 +2,14 @@
 import pygame
 import pytmx
 from game_state import game_state
-from items import HealthPotion
+from items import HealthPotion, PotionSpritesheet
 
 def load_map(map_name):
     try:
+        if not hasattr(load_map, 'potion_spritesheet'):
+            sprite_path = "health potion/health 48x48.png"
+            load_map.potion_spritesheet = PotionSpritesheet(sprite_path)
+
         # Harita önbellekte varsa yükle
         if map_name in game_state.maps_data:
             game_state.tmx_data = game_state.maps_data[map_name]["tmx_data"]
@@ -16,26 +20,19 @@ def load_map(map_name):
             game_state.transition_rects = game_state.maps_data[map_name]["transition_rects"]
             game_state.parallax_factors_x = game_state.maps_data[map_name]["parallax_factors_x"]
             game_state.parallax_factors_y = game_state.maps_data[map_name]["parallax_factors_y"]
-            game_state.health_potions = game_state.maps_data[map_name]["health_potions"]
+            game_state.health_potions = game_state.maps_data[map_name].get("health_potions", pygame.sprite.Group())
             return
 
         # Önbellekleri temizle
         game_state.tile_cache.clear()
+        if hasattr(game_state, 'player') and hasattr(game_state.player, 'scaled_image_cache'):
+            game_state.player.scaled_image_cache.clear()
 
         # Harita dosyasını yükle
         map_file = f'levels/{map_name}/{map_name}.tmx'
         game_state.tmx_data = pytmx.load_pygame(map_file)
         game_state.map_width = game_state.tmx_data.width * game_state.tmx_data.tilewidth
         game_state.map_height = game_state.tmx_data.height * game_state.tmx_data.tileheight
-
-        # Sağlık iksirlerini yükle
-        game_state.health_potions = []
-        for layer in game_state.tmx_data.layers:
-            if isinstance(layer, pytmx.TiledObjectGroup) and layer.name.lower() == "items":
-                for obj in layer:
-                    if hasattr(obj, 'x') and hasattr(obj, 'y') and obj.name.lower() == "health_potion":
-                        potion = HealthPotion(obj.x, obj.y)
-                        game_state.health_potions.append(potion)
 
         # Çarpışma nesnelerini yükle
         game_state.collision_rects = []
@@ -52,8 +49,12 @@ def load_map(map_name):
             if isinstance(layer, pytmx.TiledObjectGroup) and layer.name.lower() == "hazards":
                 for obj in layer:
                     if hasattr(obj, 'x') and hasattr(obj, 'y'):
-                        rect = pygame.Rect(obj.x, obj.y, obj.width, obj.height)
-                        game_state.spike_rects.append(rect)
+                        props = getattr(obj, 'properties', {})
+                        damage_amount = props.get('damage_amount', 10)
+                        game_state.spike_rects.append({
+                            'rect': pygame.Rect(obj.x, obj.y, obj.width, obj.height),
+                            'damage_amount': damage_amount
+                        })
 
         # Geçiş bölgelerini yükle
         game_state.transition_rects = {}
@@ -72,6 +73,17 @@ def load_map(map_name):
                                 'info': transition_info
                             }
 
+        # Sağlık iksirlerini yükle
+        game_state.health_potions = pygame.sprite.Group()  # Doğru atama
+        for layer in game_state.tmx_data.layers:
+            if isinstance(layer, pytmx.TiledObjectGroup) and layer.name == "Potions":
+                for obj in layer:
+                    props = getattr(obj, 'properties', {})
+                    healing_amount = props.get('healing_amount', 20)
+                    potion = HealthPotion(obj.x, obj.y, healing_amount, load_map.potion_spritesheet)
+                    game_state.health_potions.add(potion)
+                    print(f"İksir yüklendi: ({obj.x}, {obj.y}), iyileştirme: {healing_amount}")
+
         # Paralaks faktörlerini güncelle
         update_parallax_factors()
 
@@ -85,7 +97,7 @@ def load_map(map_name):
             "transition_rects": game_state.transition_rects,
             "parallax_factors_x": game_state.parallax_factors_x,
             "parallax_factors_y": game_state.parallax_factors_y,
-            "health_potions": game_state.health_potions,
+            "health_potions": game_state.health_potions
         }
     except Exception as e:
         print(f"Harita yüklenirken hata: {e}")
