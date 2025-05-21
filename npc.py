@@ -9,7 +9,7 @@ class NPC(pygame.sprite.Sprite):
         pygame.sprite.Sprite.__init__(self)
         self.name = name
         self.scale = scale
-        self.flip = False  # Varsayılan yön
+        self.flip = False
         self.frame_index = 0
         self.animation_speed = max(1, round(60 / 12))
         self.update_counter = 0
@@ -34,9 +34,9 @@ class NPC(pygame.sprite.Sprite):
         self.prompt_fade_speed = 15
         self.prompt_animation_timer = 0
         self.scaled_image_cache = {}
-        self.prompt_image = None  # prompt_image tanımlı
-        self.dialogue_cache = {}  # Diyalog önbelleği
-    
+        self.prompt_image = None
+        self.dialogue_cache = {}
+
     def update_animation(self):
         self.update_counter += 1
         if self.update_counter < self.animation_speed:
@@ -45,7 +45,7 @@ class NPC(pygame.sprite.Sprite):
         frames = self.animations[self.current_animation]
         self.frame_index = (self.frame_index + 1) % len(frames)
         self.image = frames[self.frame_index]
-    
+
     def check_interaction(self, player, events):
         player_pos = Vector2(player.rect.center)
         self_pos = Vector2(self.rect.center)
@@ -63,7 +63,7 @@ class NPC(pygame.sprite.Sprite):
                         self.is_interacting = True
                         player.is_in_dialogue = True
                         self.current_dialogue_index = 0
-                        self.current_animation = "idle"  # Güvenli animasyon
+                        self.current_animation = "idle"
                         self.frame_index = 0
                         self.update_counter = 0
                         print(f"{self.name} ile diyalog başladı")
@@ -81,12 +81,12 @@ class NPC(pygame.sprite.Sprite):
                         else:
                             print(f"{self.name} diyalog: {self.dialogues[self.current_dialogue_index]}")
                             sound_manager.play_sound("click")
-    
+
     def update(self, player, events):
         self.update_animation()
         self.check_interaction(player, events)
-    
-    def draw(self, surface, camera_x, camera_y, font, zoom_factor):
+
+    def draw(self, surface, camera_x, camera_y, font, zoom_factor, player=None):
         screen_x = (self.rect.x - camera_x) * zoom_factor
         screen_y = (self.rect.y - camera_y) * zoom_factor
         scaled_width = int(self.rect.width * zoom_factor)
@@ -141,12 +141,7 @@ class Blacksmith(NPC):
         idle_2_spritesheet = Spritesheet("npc_sprites/blacksmith/idle_2.png")
         super().__init__(idle_spritesheet, x, y, scale, "Blacksmith")
         self.animations["idle_2"] = idle_2_spritesheet.get_animation_frames(128, 128, scale)
-        self.dialogues = [
-            "Merhaba, ben köyün demircisi! Kılıcını keskinleştirmek ister misin?",
-            "İyi bir kılıç, bir samurayın en iyi dostudur.",
-            "Eğer malzemelerin varsa, sana özel bir silah yapabilirim!",
-            "Yolculuğun nasıl gidiyor, gezgin?"
-        ]
+        self.dialogues = ["Kılıcını keskinleştirmek ister misin?"]
         self.sound_range = 800
         self.sound_step = 100
         self.sound_increment = 0.1
@@ -155,7 +150,12 @@ class Blacksmith(NPC):
         self.last_sound_time = 0
         self.sound_cooldown = 2000
         self.sound_active = False
-    
+        self.awaiting_choice = False
+        self.selected_option = 0  # 0: Evet, 1: Hayır
+        self.show_damage_increase = False
+        self.damage_increase_timer = 0
+        self.damage_increase_alpha = 255
+
     def check_interaction(self, player, events):
         player_pos = Vector2(player.rect.center)
         self_pos = Vector2(self.rect.center)
@@ -166,6 +166,7 @@ class Blacksmith(NPC):
         self.prompt_alpha = max(0, min(255, self.prompt_alpha))
         self.prompt_animation_timer = pygame.time.get_ticks()
         self.prompt_scale = 1.0 + 0.1 * (pygame.time.get_ticks() % 1000 / 1000)
+
         if not self.is_interacting:
             current_time = pygame.time.get_ticks()
             if distance <= self.sound_range:
@@ -190,37 +191,99 @@ class Blacksmith(NPC):
             sound_manager.stop_sound("blacksmith_hammer")
             self.sound_active = False
             print("Ses durduruldu: NPC ile diyalog başladı")
+
         for event in events:
             if event.type == pygame.KEYDOWN and event.key == pygame.K_e:
-                if self.show_interact_prompt:
-                    if not self.is_interacting:
-                        self.is_interacting = True
-                        player.is_in_dialogue = True
-                        self.current_dialogue_index = 0
-                        self.current_animation = "idle_2"
-                        self.frame_index = 0
-                        self.update_counter = 0
-                        print(f"{self.name} ile diyalog başladı")
-                        sound_manager.play_sound("click")
-                    else:
-                        self.current_dialogue_index += 1
-                        if self.current_dialogue_index >= len(self.dialogues):
-                            self.is_interacting = False
-                            player.is_in_dialogue = False
-                            self.current_animation = "idle"
-                            self.frame_index = 0
-                            self.update_counter = 0
-                            print(f"{self.name} ile diyalog bitti")
-                            sound_manager.play_sound("click")
-                        else:
-                            print(f"{self.name} diyalog: {self.dialogues[self.current_dialogue_index]}")
-                            sound_manager.play_sound("click")
+                if self.show_interact_prompt and not self.is_interacting:
+                    self.is_interacting = True
+                    player.is_in_dialogue = True
+                    self.current_dialogue_index = 0
+                    self.current_animation = "idle_2"
+                    self.frame_index = 0
+                    self.update_counter = 0
+                    print(f"{self.name} ile diyalog başladı: {self.dialogues[self.current_dialogue_index]}")
+                    sound_manager.play_sound("click")
+                elif self.is_interacting and not self.awaiting_choice:
+                    self.awaiting_choice = True
+                    self.selected_option = 0
+                    print(f"Seçim ekranı açıldı, seçili: {'Evet' if self.selected_option == 0 else 'Hayır'}")
+                    sound_manager.play_sound("click")
+                elif self.is_interacting and self.awaiting_choice:
+                    print(f"Seçim onaylandı, seçili: {'Evet' if self.selected_option == 0 else 'Hayır'}")
+                    if self.selected_option == 0:  # Evet
+                        player.increase_attack_damage(5)
+                        print(f"Kılıç keskinleştirildi! Yeni hasar: {player.attack_damage}")
+                        self.show_damage_increase = True
+                        self.damage_increase_timer = 120  # 2 saniye (60 fps)
+                        self.damage_increase_alpha = 255
+                    else:  # Hayır
+                        print(f"{self.name} ile diyalog bitti: Hayır seçildi")
+                    self.is_interacting = False
+                    player.is_in_dialogue = False
+                    self.awaiting_choice = False
+                    self.current_animation = "idle"
+                    self.frame_index = 0
+                    self.update_counter = 0
+                    sound_manager.play_sound("click")
+            elif event.type == pygame.KEYDOWN and self.is_interacting and self.awaiting_choice:
+                if event.key == pygame.K_a:
+                    self.selected_option = 0
+                    print(f"Seçili seçenek: Evet")
+                    sound_manager.play_sound("click")
+                elif event.key == pygame.K_d:
+                    self.selected_option = 1
+                    print(f"Seçili seçenek: Hayır")
+                    sound_manager.play_sound("click")
+
+    def update(self, player, events):
+        self.update_animation()
+        self.check_interaction(player, events)
+        if self.show_damage_increase:
+            self.damage_increase_timer -= 1
+            self.damage_increase_alpha = max(0, self.damage_increase_alpha - 255 / 120)
+            if self.damage_increase_timer <= 0:
+                self.show_damage_increase = False
+
+    def draw(self, surface, camera_x, camera_y, font, zoom_factor, player=None):
+        super().draw(surface, camera_x, camera_y, font, zoom_factor, player)
+        if self.is_interacting and self.awaiting_choice:
+            yes_text = game_state.font.render("Evet", color=(255, 255, 255), background=(0, 0, 0), shadow=True)
+            no_text = game_state.font.render("Hayır", color=(255, 255, 255), background=(0, 0, 0), shadow=True)
+            yes_width, yes_height = game_state.font.get_size("Evet")
+            no_width, no_height = game_state.font.get_size("Hayır")
+            box_width = max(yes_width, no_width) + 20
+            box_height = max(yes_height, no_height) + 10
+            yes_x = game_state.screen_width // 2 - box_width - 10
+            no_x = game_state.screen_width // 2 + 10
+            box_y = game_state.screen_height - box_height - 60
+
+            # Kutucukları çiz
+            pygame.draw.rect(surface, (50, 50, 50), (yes_x, box_y, box_width, box_height))
+            pygame.draw.rect(surface, (50, 50, 50), (no_x, box_y, box_width, box_height))
+            if self.selected_option == 0:
+                pygame.draw.rect(surface, (255, 255, 0), (yes_x, box_y, box_width, box_height), 3)
+            else:
+                pygame.draw.rect(surface, (255, 255, 0), (no_x, box_y, box_width, box_height), 3)
+            
+            # Metinleri kutucuklara hizala
+            surface.blit(yes_text, (yes_x + (box_width - yes_width) / 2, box_y + (box_height - yes_height) / 2))
+            surface.blit(no_text, (no_x + (box_width - no_width) / 2, box_y + (box_height - no_height) / 2))
+
+        if self.show_damage_increase and player:
+            damage_text = game_state.font_big.render(
+                f"Kılıcın Gücü Arttı! Yeni Hasar: {player.attack_damage}",
+                color=(255, 0, 0),
+                shadow=True
+            )
+            damage_text.set_alpha(int(self.damage_increase_alpha))
+            text_width, text_height = game_state.font_big.get_size(f"Kılıcın Gücü Arttı! Yeni Hasar: {player.attack_damage}")
+            surface.blit(damage_text, ((game_state.screen_width - text_width) / 2, game_state.screen_height -text_height -20 ))
 
 class Trader(NPC):
     def __init__(self, x, y, scale=1):
         idle_spritesheet = Spritesheet("npc_sprites/trader/idle.png")
         super().__init__(idle_spritesheet, x, y, scale, "Trader")
-        self.flip = True  # Trader ters yönde çizilecek
+        self.flip = True
         self.dialogues = [
             "Buz mağarasına hoş geldin, yolcu! İksir mi arıyorsun?",
             "Biraz altın karşılığında sana güçlü iksirler satabilirim.",
@@ -247,7 +310,7 @@ class Trader(NPC):
                         self.is_interacting = True
                         player.is_in_dialogue = True
                         self.current_dialogue_index = 0
-                        self.current_animation = "idle"  # idle_2 yok, idle kullanıldı
+                        self.current_animation = "idle"
                         self.frame_index = 0
                         self.update_counter = 0
                         print(f"{self.name} ile diyalog başladı")
@@ -265,3 +328,6 @@ class Trader(NPC):
                         else:
                             print(f"{self.name} diyalog: {self.dialogues[self.current_dialogue_index]}")
                             sound_manager.play_sound("click")
+
+    def draw(self, surface, camera_x, camera_y, font, zoom_factor, player=None):
+        super().draw(surface, camera_x, camera_y, font, zoom_factor, player)
