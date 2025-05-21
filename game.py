@@ -24,13 +24,6 @@ def set_zoom(factor):
     if hasattr(player, 'scaled_image_cache'):
         player.scaled_image_cache.clear()
 
-ninja_idle_spritesheet = Spritesheet("ENEMIES/Idle.png")
-ninja_walk_spritesheet = Spritesheet("ENEMIES/Walk.png")
-ninja_attack_spritesheet = Spritesheet("ENEMIES/Attack_1.png")
-ninja_hurt_spritesheet = Spritesheet("ENEMIES/Hurt.png")
-ninja_death_spritesheet = Spritesheet("ENEMIES/Death.png")
-ninja_jump_spritesheet = Spritesheet("ENEMIES/Jump.png")
-
 walk_spritesheet = Spritesheet("player sprite sheets/Walk.png")
 idle_spritesheet = Spritesheet("player sprite sheets/Idle.png")
 jump_spritesheet = Spritesheet("player sprite sheets/Jump.png")
