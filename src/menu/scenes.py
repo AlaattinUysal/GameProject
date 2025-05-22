@@ -862,9 +862,9 @@ class LevelSelectScene(BaseScene):
         level_start_x = SCREEN_WIDTH // 2 - (small_button_width * 1.5 + small_button_spacing)
         level_start_y = SCREEN_HEIGHT // 2 - small_button_height
         
-        # 9 seviye oluştur - 3x3 grid formatında
+        # 5 seviye oluştur - 3+2 grid formatında
         self.level_buttons = []
-        for i in range(9):
+        for i in range(5):  # 9 yerine 5 seviye
             row = i // levels_per_row
             col = i % levels_per_row
             
@@ -923,3 +923,112 @@ class LevelSelectScene(BaseScene):
         print(f"Seviye {level} başlatılıyor...")
         self.menu.show_level_selection = False
         # Seviye başlatma kodları buraya gelecek 
+
+class LeaderboardScene(BaseScene):
+    """Liderlik tablosu sahnesi"""
+    def __init__(self, menu):
+        super().__init__(menu)
+        
+        # Panel pozisyonu
+        panel_x = (SCREEN_WIDTH - PANEL_WIDTH) // 2
+        panel_y = (SCREEN_HEIGHT - PANEL_HEIGHT) // 2 + 50
+        
+        # Geri butonu
+        self.back_button = PixelButton(
+            50, 50, 120, 40, "BACK", self.go_back, ICONS["back"]
+        )
+        
+        # Başlık yazı tipi
+        self.title_font = load_font(24, bold=True)
+        self.text_font = load_font(20)
+        
+        # Tablo başlıkları
+        self.headers = [
+            "LEVEL",
+            "CURRENT-T",
+            "BEST-T"
+        ]
+        
+        # Örnek veriler (gerçek veriler oyun ilerledikçe güncellenecek)
+        self.leaderboard_data = [
+            {"level": 1, "current_time": "02:30", "best_time": "01:45"},
+            {"level": 2, "current_time": "03:15", "best_time": "02:30"},
+            {"level": 3, "current_time": "04:00", "best_time": "03:20"},
+            {"level": 4, "current_time": "--:--", "best_time": "--:--"},
+            {"level": 5, "current_time": "--:--", "best_time": "--:--"}
+        ]
+    
+    def handle_events(self, events):
+        mouse_pos = pygame.mouse.get_pos()
+        
+        # Back butonu
+        self.back_button.check_hover(mouse_pos)
+        for event in events:
+            if self.back_button.handle_event(event):
+                return True
+    
+    def update(self):
+        self.back_button.update()
+    
+    def draw(self):
+        panel_x, panel_y = self._draw_panel(title="LEADERBOARD 🏆", title_color=GOLD)
+        
+        # Geri butonunu çiz
+        self.back_button.draw(self.screen)
+        
+        # Tablo başlıklarını çiz
+        header_y = panel_y + 100
+        header_spacing = PANEL_WIDTH // len(self.headers)
+        
+        for i, header in enumerate(self.headers):
+            header_surface = self.title_font.render(header, True, ORANGE)
+            header_rect = header_surface.get_rect(
+                midtop=(panel_x + header_spacing * (i + 0.5), header_y)
+            )
+            self.screen.blit(header_surface, header_rect)
+        
+        # Tablo verilerini çiz
+        data_start_y = header_y + 40
+        row_height = 40
+        
+        for i, row in enumerate(self.leaderboard_data):
+            # Level numarası
+            level_text = f"LEVEL {row['level']}"
+            level_surface = self.text_font.render(level_text, True, WHITE)
+            level_rect = level_surface.get_rect(
+                midtop=(panel_x + header_spacing * 0.5, data_start_y + i * row_height)
+            )
+            self.screen.blit(level_surface, level_rect)
+            
+            # Mevcut süre
+            current_time_surface = self.text_font.render(row['current_time'], True, CYAN)
+            current_time_rect = current_time_surface.get_rect(
+                midtop=(panel_x + header_spacing * 1.5, data_start_y + i * row_height)
+            )
+            self.screen.blit(current_time_surface, current_time_rect)
+            
+            # En iyi süre
+            best_time_surface = self.text_font.render(row['best_time'], True, GREEN)
+            best_time_rect = best_time_surface.get_rect(
+                midtop=(panel_x + header_spacing * 2.5, data_start_y + i * row_height)
+            )
+            self.screen.blit(best_time_surface, best_time_rect)
+    
+    def go_back(self):
+        self.menu.set_scene("main")
+        
+    def update_times(self, level, current_time, best_time=None):
+        """Süreleri güncelle"""
+        if 0 <= level - 1 < len(self.leaderboard_data):
+            self.leaderboard_data[level - 1]["current_time"] = current_time
+            if best_time:
+                if self.leaderboard_data[level - 1]["best_time"] == "--:--" or \
+                   self._convert_time_to_seconds(best_time) < self._convert_time_to_seconds(self.leaderboard_data[level - 1]["best_time"]):
+                    self.leaderboard_data[level - 1]["best_time"] = best_time
+    
+    def _convert_time_to_seconds(self, time_str):
+        """XX:XX formatındaki süreyi saniyeye çevir"""
+        if time_str == "--:--":
+            return float('inf')
+        minutes, seconds = map(int, time_str.split(':'))
+        return minutes * 60 + seconds 
