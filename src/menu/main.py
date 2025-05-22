@@ -17,7 +17,7 @@ from menu.config import (
 )
 from menu.assets import load_background, load_samurai_characters, load_font, load_and_play_music
 from menu.scenes import (
-    MainScene, OptionsScene, SettingsScene, LoginScene, ShopScene, LevelSelectScene
+    MainScene, OptionsScene, SettingsScene, LoginScene, ShopScene, LevelSelectScene, LeaderboardScene
 )
 
 class Menu:
@@ -71,7 +71,8 @@ class Menu:
             "settings": SettingsScene(self),
             "login": LoginScene(self),
             "shop": ShopScene(self),
-            "level_select": LevelSelectScene(self)
+            "level_select": LevelSelectScene(self),
+            "leaderboard": LeaderboardScene(self)
         }
         
         # Aktif sahne
@@ -256,7 +257,7 @@ class Menu:
         for skill in self.scenes["shop"].shop_skills:
             skill.is_purchased = False
         
-        # Level ilerlemesini sıfırla
+        # Level ilerlemesini sıfırla - sadece 5 seviye için
         for button in self.scenes["level_select"].level_buttons:
             button.is_completed = (button.level_number <= 3)  # İlk 3 seviye açık
         
@@ -277,7 +278,7 @@ class Menu:
     
     def show_leaderboard(self):
         print("Liderlik tablosu gösteriliyor...")
-        # Liderlik tablosu kodları buraya gelecek
+        self.set_scene("leaderboard")
     
     def show_shop(self):
         print("Mağaza açılıyor...")
