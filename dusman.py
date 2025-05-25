@@ -30,15 +30,6 @@ class Dusman:
         self.update_hitbox()
         self.update_ground_check()
 
-        walk_spritesheet = Spritesheet("ENEMIES/anime/Knight/Walk_AnimeKnight.png")
-        idle_spritesheet = Spritesheet("ENEMIES/anime/Knight/Idle_AnimeKnight.png")
-        jump_spritesheet = Spritesheet("ENEMIES/anime/Knight/Jump_AnimeKnight.png")
-        run_spritesheet = Spritesheet("ENEMIES/anime/Knight/Run_AnimeKnight.png")
-        attack1_spritesheet = Spritesheet("ENEMIES/anime/Knight/Attack_1_AnimeKnight.png")
-        attack2_spritesheet = Spritesheet("ENEMIES/anime/Knight/Attack_2_AnimeKnight.png")
-        attack3_spritesheet = Spritesheet("ENEMIES/anime/Knight/Attack_3_AnimeKnight.png")
-        hurt_spritesheet = Spritesheet("ENEMIES/anime/Knight/Hurt_AnimeKnight.png")
-        death_spritesheet = Spritesheet("ENEMIES/anime/Knight/Dead_AnimeKnight.png")
 
     # yakin.py içinde
     def animasyonlari_yukle(self, animasyonlar):
@@ -116,6 +107,20 @@ class Dusman:
                 self.kare_indeksi = 0
             self.mevcut_animasyon = yeni_animasyon
 
+    # Add health bar drawing:
+    def draw_health_bar(self, surface, camera_x, camera_y,zoom_factor):
+        """Sağlık çubuğunu çiz"""
+        
+        bar_width = 40
+        bar_height = 5
+        bar_x = (self.rect.centerx - bar_width // 2 - camera_x) * zoom_factor
+        bar_y = (self.rect.top - 10 - camera_y) * zoom_factor
+        pygame.draw.rect(surface, (255, 0, 0), (bar_x, bar_y, bar_width * zoom_factor, bar_height * zoom_factor))
+        health_width = (self.can / self.maksimum_can) * bar_width * zoom_factor
+        pygame.draw.rect(surface, (0, 255, 0), (bar_x, bar_y, health_width, bar_height * zoom_factor))
+        pygame.draw.rect(surface, (0, 0, 0), (bar_x, bar_y, bar_width * zoom_factor, bar_height * zoom_factor), 1)
+
+
     def ciz(self, ekran, camera_x, camera_y, zoom_factor):
         if self.mevcut_animasyon in self.animasyonlar:
             animation_frames = self.animasyonlar[self.mevcut_animasyon]
@@ -147,14 +152,7 @@ class Dusman:
                 hitbox_height = self.hitbox.height * zoom_factor
                 pygame.draw.rect(ekran, (255, 0, 0), (hitbox_x, hitbox_y, hitbox_width, hitbox_height), 2)
                 
-                # Can barı
-                can_cubugu_genislik = 50 * zoom_factor
-                can_cubugu_yukseklik = 5 * zoom_factor
-                can_cubugu_x = (self.hitbox.centerx - can_cubugu_genislik // 2 - camera_x) * zoom_factor
-                can_cubugu_y = (self.hitbox.top - 10 - camera_y) * zoom_factor
-                pygame.draw.rect(ekran, (255, 0, 0), (can_cubugu_x, can_cubugu_y, can_cubugu_genislik, can_cubugu_yukseklik))
-                can_orani = self.can / self.maksimum_can
-                pygame.draw.rect(ekran, (0, 255, 0), (can_cubugu_x, can_cubugu_y, can_cubugu_genislik * can_orani, can_cubugu_yukseklik))
+                self.draw_health_bar(ekran, camera_x, camera_y,zoom_factor)
             else:
                 print(f"Çizim hatası: {self.__class__.__name__}")
         else:
