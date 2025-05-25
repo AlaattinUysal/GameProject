@@ -4,20 +4,19 @@ import pygame
 class AnaKarakter(Dusman):
     def __init__(self, x, y):
         animasyonlar = {
-            "Idle": 6,
-            "Idle_2": 6,
-            "Walk": 12, 
-            "Run": 12, 
-            "Jump": 10,
+            "Idle": 9,
+            "Walk": 8, 
+            "Run": 8, 
+            "Jump": 9,
             "Hurt": 3, 
-            "Dead": 5, 
-            "Run+Attack": 5, 
-            "Attack_1": 4, 
+            "Dead": 5,  
+            "Attack_1": 5, 
             "Attack_2": 5,
+            "Attcak_3":6
         }
-        super().__init__(x, y - 50, hiz=5, can=100, guc=10, sprite_klasoru="ENEMIES/warrior/Man_3", animasyonlar=animasyonlar, sprite_soneki="Man3")
+        super().__init__(x, y - 50, hiz=5, can=1000, guc=10, sprite_klasoru="ENEMIES/samuray/Samurai_Archer", animasyonlar=animasyonlar, sprite_soneki="Main")
         self.saldiri_menzili = 100
-        self.jump_power = -10
+        self.jump_power = -12
 
     def hareket_et(self, tuslar, collision_rects):
         if not self.canli_mi():
@@ -54,7 +53,7 @@ class AnaKarakter(Dusman):
 
         dx = handle_horizontal_collisions(dx)
 
-        if hareket_var and not self.vuruldu:
+        if hareket_var and not self.vuruldu and not self.vuruyor:
             self.animasyon_degistir("Run")
         elif not self.vuruyor and not self.vuruldu and self.canli_mi():
             self.animasyon_degistir("Idle")
@@ -62,14 +61,12 @@ class AnaKarakter(Dusman):
         self.x = self.rect.centerx
         self.y = self.rect.centery
 
-    def saldiri(self, dusman_listesi):
-        if not self.canli_mi():
-            return
-        if self.vuruyor:
+    def saldiri(self, dusman_listesi, animasyon):
+        if not self.canli_mi() or self.vuruyor:
             return
         
         self.vuruyor = True
-        self.animasyon_degistir("Attack_1")
+        self.animasyon_degistir(animasyon)
         self.vurma_zamani = pygame.time.get_ticks()
         for dusman in dusman_listesi:
             if dusman.canli_mi() and self.mesafe_hesapla(dusman.x, dusman.y) < self.saldiri_menzili:
