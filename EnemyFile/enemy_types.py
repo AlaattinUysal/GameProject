@@ -16,8 +16,8 @@ class NinjaMonk(Yakin):
             "Attack_2": 5,
         }
         super().__init__(x, y, hiz=3, can=50, guc=10, sprite_klasoru="ENEMIES/ninja/Ninja_Monk", animasyonlar=animasyonlar, sprite_soneki="Monk")
-        self.devriye_noktasi_1 = (x - 100, y)
-        self.devriye_noktasi_2 = (x + 500, y)
+        self.devriye_noktasi_1 = (x - 200, y)
+        self.devriye_noktasi_2 = (x + 200, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
         self.attack_count=2
 
@@ -34,10 +34,11 @@ class NinjaPeasant(Yakin):
             "Attack_1": 6, 
             "Attack_2": 4,
         }
-        super().__init__(x, y, hiz=2, can=70, guc=20, sprite_klasoru="ENEMIES/ninja/Ninja_Peasant", animasyonlar=animasyonlar, sprite_soneki="Peasant")
+        super().__init__(x, y, hiz=2, can=100, guc=10, sprite_klasoru="ENEMIES/ninja/Ninja_Peasant", animasyonlar=animasyonlar, sprite_soneki="Peasant")
         self.devriye_noktasi_1 = (x - 200, y)
         self.devriye_noktasi_2 = (x + 200, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
+        self.attack_count=2
 
 class KarasuTengu(Yakin):
     def __init__(self, x, y):
@@ -56,6 +57,7 @@ class KarasuTengu(Yakin):
         self.devriye_noktasi_1 = (x - 100, y)
         self.devriye_noktasi_2 = (x + 100, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
+        self.attack_count=3
 
 class YamabushiTengu(Yakin):
     def __init__(self, x, y):
@@ -74,6 +76,7 @@ class YamabushiTengu(Yakin):
         self.devriye_noktasi_1 = (x - 100, y)
         self.devriye_noktasi_2 = (x + 100, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
+        self.attack_count=3
 
 class BlackWolf(Yakin):
     def __init__(self, x, y):
@@ -111,6 +114,7 @@ class RedWolf(Yakin):
         self.devriye_noktasi_1 = (x - 100, y)
         self.devriye_noktasi_2 = (x + 100, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
+        self.attack_count=3
 
 class WhiteWolf(Yakin):
     def __init__(self, x, y):
@@ -126,9 +130,10 @@ class WhiteWolf(Yakin):
             "Attack_3": 5,
         }
         super().__init__(x, y, hiz=2, can=70, guc=20, sprite_klasoru="ENEMIES/werewolf/White_Werewolf", animasyonlar=animasyonlar, sprite_soneki="white")
-        self.devriye_noktasi_1 = (x - 100, y)
-        self.devriye_noktasi_2 = (x + 100, y)
+        self.devriye_noktasi_1 = (x - 120, y)
+        self.devriye_noktasi_2 = (x + 120, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
+        self.attack_count=3
 
 class Minotaur1(Yakin):
     def __init__(self, x, y):
@@ -140,9 +145,10 @@ class Minotaur1(Yakin):
             "Attack_1": 5,
         }
         super().__init__(x, y, hiz=2, can=70, guc=20, sprite_klasoru="ENEMIES/minatour/Minotaur_1", animasyonlar=animasyonlar, sprite_soneki="Minotaur1")
-        self.devriye_noktasi_1 = (x - 100, y)
-        self.devriye_noktasi_2 = (x + 100, y)
+        self.devriye_noktasi_1 = (x - 50, y)
+        self.devriye_noktasi_2 = (x + 50, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
+        self.attack_count=1
 
 class Minotaur2(Yakin):
     def __init__(self, x, y):
@@ -157,6 +163,7 @@ class Minotaur2(Yakin):
         self.devriye_noktasi_1 = (x - 100, y)
         self.devriye_noktasi_2 = (x + 100, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
+        self.attack_count=1
 
 class Minotaur3(Yakin):
     def __init__(self, x, y):
@@ -168,9 +175,10 @@ class Minotaur3(Yakin):
             "Attack_1": 5,
         }
         super().__init__(x, y, hiz=2, can=70, guc=20, sprite_klasoru="ENEMIES/minatour/Minotaur_3", animasyonlar=animasyonlar, sprite_soneki="Minotaur3")
-        self.devriye_noktasi_1 = (x - 100, y)
-        self.devriye_noktasi_2 = (x + 100, y)
+        self.devriye_noktasi_1 = (x - 150, y)
+        self.devriye_noktasi_2 = (x + 150, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
+        self.attack_count=1
     
 class Copper(Yakin):
     def __init__(self, x, y):
@@ -189,6 +197,7 @@ class Copper(Yakin):
         self.devriye_noktasi_1 = (x - 100, y)
         self.devriye_noktasi_2 = (x + 100, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
+        self.attack_count=3
 
 class Lava(Yakin):
     def __init__(self, x, y):
@@ -204,9 +213,10 @@ class Lava(Yakin):
             "Attack_3": 7,
         }
         super().__init__(x, y, hiz=2, can=70, guc=20, sprite_klasoru="ENEMIES/golem/Lava_golem", animasyonlar=animasyonlar, sprite_soneki="Lava")
-        self.devriye_noktasi_1 = (x - 100, y)
-        self.devriye_noktasi_2 = (x + 100, y)
+        self.devriye_noktasi_1 = (x - 200, y)
+        self.devriye_noktasi_2 = (x + 200, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
+        self.attack_count=3
 
 class Stone(Yakin):
     def __init__(self, x, y):
@@ -225,6 +235,7 @@ class Stone(Yakin):
         self.devriye_noktasi_1 = (x - 100, y)
         self.devriye_noktasi_2 = (x + 100, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
+        self.attack_count=3
     
 class Gladiator1(Yakin):
     def __init__(self, x, y):
@@ -242,6 +253,7 @@ class Gladiator1(Yakin):
         self.devriye_noktasi_1 = (x - 100, y)
         self.devriye_noktasi_2 = (x + 100, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
+        self.attack_count=2
 
 class Gladiator2(Yakin):
     def __init__(self, x, y):
@@ -259,6 +271,7 @@ class Gladiator2(Yakin):
         self.devriye_noktasi_1 = (x - 100, y)
         self.devriye_noktasi_2 = (x + 100, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
+        self.attack_count=2
 
 class Gladiator3(Yakin):
     def __init__(self, x, y):
@@ -276,6 +289,7 @@ class Gladiator3(Yakin):
         self.devriye_noktasi_1 = (x - 100, y)
         self.devriye_noktasi_2 = (x + 100, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
+        self.attack_count=2
 
 class Amazon1(Yakin):
     def __init__(self, x, y):
@@ -293,6 +307,7 @@ class Amazon1(Yakin):
         self.devriye_noktasi_1 = (x - 100, y)
         self.devriye_noktasi_2 = (x + 100, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
+        self.attack_count=2
 
 class Amazon2(Yakin):
     def __init__(self, x, y):
@@ -310,6 +325,7 @@ class Amazon2(Yakin):
         self.devriye_noktasi_1 = (x - 100, y)
         self.devriye_noktasi_2 = (x + 100, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
+        self.attack_count=2
 
 class Amazon3(Yakin):
     def __init__(self, x, y):
@@ -327,6 +343,7 @@ class Amazon3(Yakin):
         self.devriye_noktasi_1 = (x - 100, y)
         self.devriye_noktasi_2 = (x + 100, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
+        self.attack_count=2
 
 class Berserk(Yakin):
     def __init__(self, x, y):
@@ -345,6 +362,7 @@ class Berserk(Yakin):
         self.devriye_noktasi_1 = (x - 100, y)
         self.devriye_noktasi_2 = (x + 100, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
+        self.attack_count=3
 
 class AnimeKnight(Yakin):
     def __init__(self, x, y):
@@ -363,6 +381,7 @@ class AnimeKnight(Yakin):
         self.devriye_noktasi_1 = (x - 100, y)
         self.devriye_noktasi_2 = (x + 100, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
+        self.attack_count=3
 
 class Enchantress(Menzilli):
     def __init__(self, x, y):
@@ -381,6 +400,7 @@ class Enchantress(Menzilli):
         self.devriye_noktasi_1 = (x - 100, y)
         self.devriye_noktasi_2 = (x + 100, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
+        self.attack_count=1
 
 class Demon1(Yakin):
     def __init__(self, x, y):
@@ -395,6 +415,7 @@ class Demon1(Yakin):
         self.devriye_noktasi_1 = (x - 100, y)
         self.devriye_noktasi_2 = (x + 100, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
+        self.attack_count=1
 
 class Demon3(Yakin):
     def __init__(self, x, y):
@@ -409,6 +430,7 @@ class Demon3(Yakin):
         self.devriye_noktasi_1 = (x - 100, y)
         self.devriye_noktasi_2 = (x + 100, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
+        self.attack_count=1
 
 class HugeMushroom(Yakin):
     def __init__(self, x, y):
@@ -426,6 +448,8 @@ class HugeMushroom(Yakin):
         self.devriye_noktasi_1 = (x - 100, y)
         self.devriye_noktasi_2 = (x + 100, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
+        self.sola_donuk=True
+        self.attack_count=4
 
 class VampireBat(Yakin):
     def __init__(self, x, y):
@@ -443,6 +467,7 @@ class VampireBat(Yakin):
         self.devriye_noktasi_1 = (x - 100, y)
         self.devriye_noktasi_2 = (x + 100, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
+        self.attack_count=4
 
 class CityMan1(Yakin):
     def __init__(self, x, y):
@@ -455,9 +480,10 @@ class CityMan1(Yakin):
             "Attack_1": 5, 
         }
         super().__init__(x, y, hiz=2, can=70, guc=20, sprite_klasoru="ENEMIES/cityMen/City_men_1", animasyonlar=animasyonlar, sprite_soneki="CityMan1")
-        self.devriye_noktasi_1 = (x - 100, y)
-        self.devriye_noktasi_2 = (x + 100, y)
+        self.devriye_noktasi_1 = (x - 200, y)
+        self.devriye_noktasi_2 = (x + 200, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
+        self.attack_count=1
 
 class CityMan2(Yakin):
     def __init__(self, x, y):
@@ -473,6 +499,7 @@ class CityMan2(Yakin):
         self.devriye_noktasi_1 = (x - 100, y)
         self.devriye_noktasi_2 = (x + 100, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
+        self.attack_count=1
 
 class CityMan3(Yakin):
     def __init__(self, x, y):
@@ -488,6 +515,7 @@ class CityMan3(Yakin):
         self.devriye_noktasi_1 = (x - 100, y)
         self.devriye_noktasi_2 = (x + 100, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
+        self.attack_count=1
 
 class Demon5(Yakin):
     def __init__(self, x, y):
@@ -502,6 +530,7 @@ class Demon5(Yakin):
         self.devriye_noktasi_1 = (x - 100, y)
         self.devriye_noktasi_2 = (x + 100, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
+        self.attack_count=1
 
 class Demon6(Yakin):
     def __init__(self, x, y):
@@ -513,9 +542,10 @@ class Demon6(Yakin):
             "Attack_1": 5, 
         }
         super().__init__(x, y, hiz=2, can=70, guc=20, sprite_klasoru="ENEMIES/demon/Demon_3", animasyonlar=animasyonlar, sprite_soneki="Demon3")
-        self.devriye_noktasi_1 = (x - 100, y)
-        self.devriye_noktasi_2 = (x + 100, y)
+        self.devriye_noktasi_1 = (x - 200, y)
+        self.devriye_noktasi_2 = (x + 200, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
+        self.attack_count=1
 
 class Goblin1(Yakin):
     def __init__(self, x, y):
@@ -531,9 +561,10 @@ class Goblin1(Yakin):
             "Attack_3": 4,
         }
         super().__init__(x, y, hiz=2, can=70, guc=20, sprite_klasoru="ENEMIES/goblin/Goblin_1", animasyonlar=animasyonlar, sprite_soneki="Goblin1")
-        self.devriye_noktasi_1 = (x - 100, y)
-        self.devriye_noktasi_2 = (x + 100, y)
+        self.devriye_noktasi_1 = (x - 200, y)
+        self.devriye_noktasi_2 = (x + 200, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
+        self.attack_count=3
 
 class Goblin2(Yakin):
     def __init__(self, x, y):
@@ -552,6 +583,7 @@ class Goblin2(Yakin):
         self.devriye_noktasi_1 = (x - 100, y)
         self.devriye_noktasi_2 = (x + 100, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
+        self.attack_count=3
 
 class Goblin3(Yakin):
     def __init__(self, x, y):
@@ -566,9 +598,10 @@ class Goblin3(Yakin):
             "Attack_3": 10,
         }
         super().__init__(x, y, hiz=2, can=70, guc=20, sprite_klasoru="ENEMIES/goblin/Goblin_3", animasyonlar=animasyonlar, sprite_soneki="Goblin3")
-        self.devriye_noktasi_1 = (x - 100, y)
-        self.devriye_noktasi_2 = (x + 100, y)
+        self.devriye_noktasi_1 = (x - 50, y)
+        self.devriye_noktasi_2 = (x + 50, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
+        self.attack_count=3
 
 class Gorgon2(Yakin):
     def __init__(self, x, y):
@@ -586,6 +619,7 @@ class Gorgon2(Yakin):
         self.devriye_noktasi_1 = (x - 100, y)
         self.devriye_noktasi_2 = (x + 100, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
+        self.attack_count=3
 
 class Gorgon1(Yakin):
     def __init__(self, x, y):
@@ -601,9 +635,10 @@ class Gorgon1(Yakin):
             "Attack_3": 4,
         }
         super().__init__(x, y, hiz=2, can=70, guc=20, sprite_klasoru="ENEMIES/gorgon/Gorgon_1", animasyonlar=animasyonlar, sprite_soneki="Gorgon1")
-        self.devriye_noktasi_1 = (x - 100, y)
-        self.devriye_noktasi_2 = (x + 100, y)
+        self.devriye_noktasi_1 = (x - 250, y)
+        self.devriye_noktasi_2 = (x + 250, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
+        self.attack_count=3
 
 class Gorgon3(Yakin):
     def __init__(self, x, y):
@@ -621,6 +656,7 @@ class Gorgon3(Yakin):
         self.devriye_noktasi_1 = (x - 100, y)
         self.devriye_noktasi_2 = (x + 100, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
+        self.attack_count=3
 
 class Hellhound1(Yakin):
     def __init__(self, x, y):
@@ -636,9 +672,10 @@ class Hellhound1(Yakin):
             "Attack_3": 7,
         }
         super().__init__(x, y, hiz=2, can=70, guc=20, sprite_klasoru="ENEMIES/hellhound/Hellhound_1", animasyonlar=animasyonlar, sprite_soneki="Hellhound1")
-        self.devriye_noktasi_1 = (x - 100, y)
-        self.devriye_noktasi_2 = (x + 100, y)
+        self.devriye_noktasi_1 = (x - 200, y)
+        self.devriye_noktasi_2 = (x + 200, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
+        self.attack_count=3
 
 class Hellhound2(Yakin):
     def __init__(self, x, y):
@@ -657,6 +694,7 @@ class Hellhound2(Yakin):
         self.devriye_noktasi_1 = (x - 100, y)
         self.devriye_noktasi_2 = (x + 100, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
+        self.attack_count=3
 
 class Hellhound3(Yakin):
     def __init__(self, x, y):
@@ -675,6 +713,7 @@ class Hellhound3(Yakin):
         self.devriye_noktasi_1 = (x - 100, y)
         self.devriye_noktasi_2 = (x + 100, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
+        self.attack_count=3
 
 class Knight1(Yakin):
     def __init__(self, x, y):
@@ -692,8 +731,9 @@ class Knight1(Yakin):
         }
         super().__init__(x, y, hiz=2, can=70, guc=20, sprite_klasoru="ENEMIES/knight/Knight_1", animasyonlar=animasyonlar, sprite_soneki="Knight1")
         self.devriye_noktasi_1 = (x - 100, y)
-        self.devriye_noktasi_2 = (x + 100, y)
+        self.devriye_noktasi_2 = (x + 200, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
+        self.attack_count=4
 
 class Knight2(Yakin):
     def __init__(self, x, y):
@@ -710,9 +750,10 @@ class Knight2(Yakin):
             "Attack_4": 6,
         }
         super().__init__(x, y, hiz=2, can=70, guc=20, sprite_klasoru="ENEMIES/knight/Knight_2", animasyonlar=animasyonlar, sprite_soneki="Knight2")
-        self.devriye_noktasi_1 = (x - 100, y)
-        self.devriye_noktasi_2 = (x + 100, y)
+        self.devriye_noktasi_1 = (x - 250, y)
+        self.devriye_noktasi_2 = (x + 250, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
+        self.attack_count=4
 
 class Knight3(Yakin):
     def __init__(self, x, y):
@@ -729,9 +770,10 @@ class Knight3(Yakin):
             "Attack_4": 6,
         }
         super().__init__(x, y, hiz=2, can=70, guc=20, sprite_klasoru="ENEMIES/knight/Knight_3", animasyonlar=animasyonlar, sprite_soneki="Knight3")
-        self.devriye_noktasi_1 = (x - 100, y)
-        self.devriye_noktasi_2 = (x + 100, y)
+        self.devriye_noktasi_1 = (x - 75, y)
+        self.devriye_noktasi_2 = (x + 75, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
+        self.attack_count=4
 
 class Mutant1(Yakin):
     def __init__(self, x, y):
@@ -746,9 +788,10 @@ class Mutant1(Yakin):
             "Attack_2": 6,
         }
         super().__init__(x, y, hiz=2, can=70, guc=20, sprite_klasoru="ENEMIES/mutant/Mutant_1", animasyonlar=animasyonlar, sprite_soneki="Mutant1")
-        self.devriye_noktasi_1 = (x - 100, y)
-        self.devriye_noktasi_2 = (x + 100, y)
+        self.devriye_noktasi_1 = (x - 50, y)
+        self.devriye_noktasi_2 = (x + 50, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
+        self.attack_count=2
 
 class Mutant2(Yakin):
     def __init__(self, x, y):
@@ -765,8 +808,9 @@ class Mutant2(Yakin):
         }
         super().__init__(x, y, hiz=2, can=70, guc=20, sprite_klasoru="ENEMIES/mutant/Mutant_2", animasyonlar=animasyonlar, sprite_soneki="Mutant2")
         self.devriye_noktasi_1 = (x - 100, y)
-        self.devriye_noktasi_2 = (x + 100, y)
+        self.devriye_noktasi_2 = (x + 75, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
+        self.attack_count=3
 
 class Mutant3(Yakin):
     def __init__(self, x, y):
@@ -782,9 +826,10 @@ class Mutant3(Yakin):
             "Attack_3": 14,
         }
         super().__init__(x, y, hiz=2, can=70, guc=20, sprite_klasoru="ENEMIES/mutant/Mutant_3", animasyonlar=animasyonlar, sprite_soneki="Mutant3")
-        self.devriye_noktasi_1 = (x - 100, y)
-        self.devriye_noktasi_2 = (x + 100, y)
+        self.devriye_noktasi_1 = (x - 50, y)
+        self.devriye_noktasi_2 = (x + 50, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
+        self.attack_count=3
 
 class BrownOrc(Yakin):
     def __init__(self, x, y):
@@ -804,6 +849,7 @@ class BrownOrc(Yakin):
         self.devriye_noktasi_1 = (x - 100, y)
         self.devriye_noktasi_2 = (x + 100, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
+        self.attack_count=4
 
 class GreenOrc(Yakin):
     def __init__(self, x, y):
@@ -823,6 +869,7 @@ class GreenOrc(Yakin):
         self.devriye_noktasi_1 = (x - 100, y)
         self.devriye_noktasi_2 = (x + 100, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
+        self.attack_count=4
 
 class WomanOrc(Yakin):
     def __init__(self, x, y):
@@ -860,6 +907,7 @@ class Pyromancer2(Yakin):
         self.devriye_noktasi_1 = (x - 100, y)
         self.devriye_noktasi_2 = (x + 100, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
+        self.attack_count=3
 
 class Pyromancer3(Yakin):
     def __init__(self, x, y):
@@ -875,9 +923,10 @@ class Pyromancer3(Yakin):
             "Attack_3": 11,
         }
         super().__init__(x, y, hiz=2, can=70, guc=20, sprite_klasoru="ENEMIES/pyromancer/Pyromancer_3", animasyonlar=animasyonlar, sprite_soneki="Pyromancer3")
-        self.devriye_noktasi_1 = (x - 100, y)
-        self.devriye_noktasi_2 = (x + 100, y)
+        self.devriye_noktasi_1 = (x - 350, y)
+        self.devriye_noktasi_2 = (x + 350, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
+        self.attack_count=3
 
 class Raider1(Yakin):
     def __init__(self, x, y):
@@ -896,6 +945,7 @@ class Raider1(Yakin):
         self.devriye_noktasi_1 = (x - 100, y)
         self.devriye_noktasi_2 = (x + 100, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
+        self.attack_count=3
 
 class Raider3(Yakin):
     def __init__(self, x, y):
@@ -914,6 +964,7 @@ class Raider3(Yakin):
         self.devriye_noktasi_1 = (x - 100, y)
         self.devriye_noktasi_2 = (x + 100, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
+        self.attack_count=3
 
 class Samurai(Yakin):
     def __init__(self, x, y):
@@ -932,6 +983,7 @@ class Samurai(Yakin):
         self.devriye_noktasi_1 = (x - 100, y)
         self.devriye_noktasi_2 = (x + 100, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
+        self.attack_count=3
 
 class SamuraiCommander(Yakin):
     def __init__(self, x, y):
@@ -946,10 +998,11 @@ class SamuraiCommander(Yakin):
             "Attack_2": 5,
             "Attack_3": 4,
         }
-        super().__init__(x, y, hiz=2, can=70, guc=20, sprite_klasoru="ENEMIES/samuray/Samurai_Commander", animasyonlar=animasyonlar, sprite_soneki="SamuraiCommandeer")
+        super().__init__(x, y, hiz=2, can=70, guc=20, sprite_klasoru="ENEMIES/samuray/Samurai_Commander", animasyonlar=animasyonlar, sprite_soneki="SamuraiCommander")
         self.devriye_noktasi_1 = (x - 100, y)
         self.devriye_noktasi_2 = (x + 100, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
+        self.attack_count=3
 
 class Man1(Yakin):
     def __init__(self, x, y):
@@ -965,9 +1018,10 @@ class Man1(Yakin):
             "Attack_3": 5,
         }
         super().__init__(x, y, hiz=2, can=70, guc=20, sprite_klasoru="ENEMIES/warrior/Man_1", animasyonlar=animasyonlar, sprite_soneki="Man1")
-        self.devriye_noktasi_1 = (x - 100, y)
-        self.devriye_noktasi_2 = (x + 100, y)
+        self.devriye_noktasi_1 = (x - 150, y)
+        self.devriye_noktasi_2 = (x + 150, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
+        self.attack_count=3
 
 class Man2(Yakin):
     def __init__(self, x, y):
@@ -986,6 +1040,7 @@ class Man2(Yakin):
         self.devriye_noktasi_1 = (x - 100, y)
         self.devriye_noktasi_2 = (x + 100, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
+        self.attack_count=3
 
 class Man3(Yakin):
     def __init__(self, x, y):
@@ -1004,6 +1059,7 @@ class Man3(Yakin):
         self.devriye_noktasi_1 = (x - 100, y)
         self.devriye_noktasi_2 = (x + 100, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
+        self.attack_count=3
 
 class Witch1(Yakin):
     def __init__(self, x, y):
@@ -1022,6 +1078,7 @@ class Witch1(Yakin):
         self.devriye_noktasi_1 = (x - 100, y)
         self.devriye_noktasi_2 = (x + 100, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
+        self.attack_count=3
 
 class Witch2(Menzilli):
     def __init__(self, x, y):
@@ -1037,12 +1094,13 @@ class Witch2(Menzilli):
             "Charge": 10,
             "Fire": 8,
         }
-        super().__init__(x, y, hiz=2, can=70, guc=20, sprite_klasoru="ENEMIES/witch/Witch_2", animasyonlar=animasyonlar, sprite_soneki="witch2")
+        super().__init__(x, y, hiz=2, can=70, guc=20, sprite_klasoru="ENEMIES/witch/Witch_2", animasyonlar=animasyonlar, sprite_soneki="witch2",)
         self.devriye_noktasi_1 = (x - 100, y)
         self.devriye_noktasi_2 = (x + 100, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
         self.tespit_mesafesi = 400
         self.saldiri_mesafesi = 300
+        self.attack_count=2
 
 class Witch3(Menzilli):
     def __init__(self, x, y):
@@ -1059,13 +1117,14 @@ class Witch3(Menzilli):
             "Fire": 14,
         }
         super().__init__(x, y, hiz=2, can=70, guc=20, sprite_klasoru="ENEMIES/witch/Witch_3", animasyonlar=animasyonlar, sprite_soneki="witch3")
-        self.devriye_noktasi_1 = (x - 100, y)
-        self.devriye_noktasi_2 = (x + 100, y)
+        self.devriye_noktasi_1 = (x - 300, y)
+        self.devriye_noktasi_2 = (x + 300, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
         self.tespit_mesafesi = 400
         self.saldiri_mesafesi = 300
+        self.attack_count=2
 
-class Pyromancer1(Menzilli):
+class Pyromancer1(Yakin):
     def __init__(self, x, y):
         animasyonlar={
             "Idle": 6,
@@ -1079,12 +1138,11 @@ class Pyromancer1(Menzilli):
             "Fire": 9,
             "Charge": 6,
         }
-        super().__init__(x, y, hiz=2, can=70, guc=20, sprite_klasoru="ENEMIES/pyromancer/Pyromancer_3", animasyonlar=animasyonlar, sprite_soneki="Pyromancer3")
+        super().__init__(x, y, hiz=2, can=70, guc=20, sprite_klasoru="ENEMIES/pyromancer/Pyromancer_1", animasyonlar=animasyonlar, sprite_soneki="Pyromancer1")
         self.devriye_noktasi_1 = (x - 100, y)
         self.devriye_noktasi_2 = (x + 100, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
-        self.tespit_mesafesi = 400
-        self.saldiri_mesafesi = 300
+        self.attack_count=2
 
 class GoblinKing(Menzilli):
     def __init__(self, x, y):
@@ -1105,6 +1163,7 @@ class GoblinKing(Menzilli):
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
         self.tespit_mesafesi = 400
         self.saldiri_mesafesi = 300
+        self.attack_count=3
 
 class BattleMecha1(Menzilli):
     def __init__(self, x, y):
@@ -1118,10 +1177,11 @@ class BattleMecha1(Menzilli):
         }
         super().__init__(x, y, hiz=2, can=70, guc=20, sprite_klasoru="ENEMIES/battlemecha/1", animasyonlar=animasyonlar, sprite_soneki="BattleMecha1")
         self.devriye_noktasi_1 = (x - 100, y)
-        self.devriye_noktasi_2 = (x + 100, y)
+        self.devriye_noktasi_2 = (x + 200, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
         self.tespit_mesafesi = 400
         self.saldiri_mesafesi = 300
+        self.attack_count=0
 
 class BattleMecha2(Menzilli):
     def __init__(self, x, y):
@@ -1139,6 +1199,7 @@ class BattleMecha2(Menzilli):
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
         self.tespit_mesafesi = 400
         self.saldiri_mesafesi = 300
+        self.attack_count=0
 
 class BattleMecha3(Menzilli):
     def __init__(self, x, y):
@@ -1156,6 +1217,7 @@ class BattleMecha3(Menzilli):
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
         self.tespit_mesafesi = 400
         self.saldiri_mesafesi = 300
+        self.attack_count=0
 
 class Demon4(Menzilli):
     def __init__(self, x, y):
@@ -1168,11 +1230,12 @@ class Demon4(Menzilli):
             "Fire": 12,
         }
         super().__init__(x, y, hiz=2, can=70, guc=20, sprite_klasoru="ENEMIES/anime_demon/Demon_4", animasyonlar=animasyonlar, sprite_soneki="Demon4")
-        self.devriye_noktasi_1 = (x - 100, y)
-        self.devriye_noktasi_2 = (x + 100, y)
+        self.devriye_noktasi_1 = (x - 200, y)
+        self.devriye_noktasi_2 = (x + 200, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
         self.tespit_mesafesi = 400
         self.saldiri_mesafesi = 300
+        self.attack_count=0
 
 class Demon2(Menzilli):
     def __init__(self, x, y):
@@ -1190,6 +1253,7 @@ class Demon2(Menzilli):
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
         self.tespit_mesafesi = 400
         self.saldiri_mesafesi = 300
+        self.attack_count=0
 
 class Wizard(Menzilli):
     def __init__(self, x, y):
@@ -1207,11 +1271,11 @@ class Wizard(Menzilli):
             "Dead": 6,
         }
         super().__init__(x, y, hiz=2, can=50, guc=15, sprite_klasoru="ENEMIES/wizard/Fire vizard", animasyonlar=animasyonlar, sprite_soneki="fire")
-        self.devriye_noktasi_1 = (x - 100, y)
-        self.devriye_noktasi_2 = (x + 100, y)
+        self.devriye_noktasi_1 = (x - 200, y)
+        self.devriye_noktasi_2 = (x + 200, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
         self.tespit_mesafesi = 400
-        self.saldiri_mesafesi = 300
+        self.attack_count=3
 
 class Lightning(Menzilli):
     def __init__(self, x, y):
@@ -1226,17 +1290,16 @@ class Lightning(Menzilli):
             "Attack_2": 4,
             "Attack_3": 12,
             "Fire": 7,
-            "Charge": 9,
-            
+            "Charge": 9, 
         }
         super().__init__(x, y, hiz=2, can=50, guc=15, sprite_klasoru="ENEMIES/wizard/Lightning Mage", animasyonlar=animasyonlar, sprite_soneki="lightning")
-        self.devriye_noktasi_1 = (x - 100, y)
-        self.devriye_noktasi_2 = (x + 100, y)
+        self.devriye_noktasi_1 = (x - 400, y)
+        self.devriye_noktasi_2 = (x + 400, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
         self.tespit_mesafesi = 400
-        self.saldiri_mesafesi = 300
+        self.attack_count=3
 
-class Lightning(Menzilli):
+class Wanderer(Menzilli):
     def __init__(self, x, y):
         animasyonlar = {
             "Idle": 8,
@@ -1249,14 +1312,14 @@ class Lightning(Menzilli):
             "Attack_2": 9,
             "Fire": 16,
             "Charge": 9,
-            
         }
         super().__init__(x, y, hiz=2, can=50, guc=15, sprite_klasoru="ENEMIES/wizard/Wanderer Magican", animasyonlar=animasyonlar, sprite_soneki="wanderer")
-        self.devriye_noktasi_1 = (x - 100, y)
-        self.devriye_noktasi_2 = (x + 100, y)
+        self.devriye_noktasi_1 = (x - 250, y)
+        self.devriye_noktasi_2 = (x + 250, y)
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
         self.tespit_mesafesi = 400
         self.saldiri_mesafesi = 300
+        self.attack_count=2
 
 class Kitsune(Menzilli):
     def __init__(self, x, y):
@@ -1278,3 +1341,4 @@ class Kitsune(Menzilli):
         self.hedef_x, self.hedef_y = self.devriye_noktasi_1
         self.tespit_mesafesi = 400
         self.saldiri_mesafesi = 300
+        self.attack_count=2
