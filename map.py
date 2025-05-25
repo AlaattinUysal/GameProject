@@ -1,8 +1,8 @@
-# map.py
 import pygame
 import pytmx
 from game_state import game_state
 from items import HealthPotion, PotionSpritesheet
+from soundmanager import sound_manager
 
 def load_map(map_name):
     try:
@@ -10,7 +10,6 @@ def load_map(map_name):
             sprite_path = "health potion/health 48x48.png"
             load_map.potion_spritesheet = PotionSpritesheet(sprite_path)
 
-        # Harita önbellekte varsa yükle
         if map_name in game_state.maps_data:
             game_state.tmx_data = game_state.maps_data[map_name]["tmx_data"]
             game_state.map_width = game_state.maps_data[map_name]["map_width"]
@@ -23,18 +22,15 @@ def load_map(map_name):
             game_state.health_potions = game_state.maps_data[map_name].get("health_potions", pygame.sprite.Group())
             return
 
-        # Önbellekleri temizle
         game_state.tile_cache.clear()
         if hasattr(game_state, 'player') and hasattr(game_state.player, 'scaled_image_cache'):
             game_state.player.scaled_image_cache.clear()
 
-        # Harita dosyasını yükle
         map_file = f'levels/{map_name}/{map_name}.tmx'
         game_state.tmx_data = pytmx.load_pygame(map_file)
         game_state.map_width = game_state.tmx_data.width * game_state.tmx_data.tilewidth
         game_state.map_height = game_state.tmx_data.height * game_state.tmx_data.tileheight
 
-        # Çarpışma nesnelerini yükle
         game_state.collision_rects = []
         for layer in game_state.tmx_data.layers:
             if isinstance(layer, pytmx.TiledObjectGroup) and layer.name.lower() == "collision":
@@ -43,7 +39,6 @@ def load_map(map_name):
                         rect = pygame.Rect(obj.x, obj.y, obj.width, obj.height)
                         game_state.collision_rects.append(rect)
 
-        # Tehlike nesnelerini yükle
         game_state.spike_rects = []
         for layer in game_state.tmx_data.layers:
             if isinstance(layer, pytmx.TiledObjectGroup) and layer.name.lower() == "hazards":
@@ -56,7 +51,6 @@ def load_map(map_name):
                             'damage_amount': damage_amount
                         })
 
-        # Geçiş bölgelerini yükle
         game_state.transition_rects = {}
         for layer in game_state.tmx_data.layers:
             if isinstance(layer, pytmx.TiledObjectGroup) and layer.name.lower() == "transitions":
@@ -73,8 +67,7 @@ def load_map(map_name):
                                 'info': transition_info
                             }
 
-        # Sağlık iksirlerini yükle
-        game_state.health_potions = pygame.sprite.Group()  # Doğru atama
+        game_state.health_potions = pygame.sprite.Group()
         for layer in game_state.tmx_data.layers:
             if isinstance(layer, pytmx.TiledObjectGroup) and layer.name == "Potions":
                 for obj in layer:
@@ -84,10 +77,8 @@ def load_map(map_name):
                     game_state.health_potions.add(potion)
                     print(f"İksir yüklendi: ({obj.x}, {obj.y}), iyileştirme: {healing_amount}")
 
-        # Paralaks faktörlerini güncelle
         update_parallax_factors()
 
-        # Harita verilerini önbelleğe al
         game_state.maps_data[map_name] = {
             "tmx_data": game_state.tmx_data,
             "map_width": game_state.map_width,
@@ -139,34 +130,86 @@ def find_spawn_point(spawn_name="spawn_point"):
                     return (obj.x, obj.y)
     return default_spawn
 
-def check_map_transitions(player):
-    for transition_name, transition_data in game_state.transition_rects.items():
-        if player.hitbox.colliderect(transition_data['rect']):
-            target_map = transition_data['info']['target_map']
-            target_spawn = transition_data['info']['target_spawn']
-            if target_map != game_state.current_map:
-                game_state.current_map = target_map
-                load_map(game_state.current_map)
-                spawn_pos = find_spawn_point(target_spawn)
-                player.rect.centerx = spawn_pos[0]
-                player.rect.bottom = spawn_pos[1]
+def adjust_spawn_to_ground(player, spawn_x, spawn_y):
+    """Spawn noktasını zemine hizalar."""
+    player.rect.centerx = spawn_x
+    player.rect.bottom = spawn_y
+    player.update_hitbox()
+    
+    # Zemine kadar düşme simülasyonu
+    max_attempts = 100  # Sonsuz döngüyü önlemek için
+    for _ in range(max_attempts):
+        prev_y = player.rect.y
+        player.y_velocity += player.gravity * 0.016  # 60 FPS için dt simülasyonu
+        player.rect.y += player.y_velocity
+        player.update_hitbox()
+        
+        for rect in game_state.collision_rects:
+            if player.hitbox.colliderect(rect):
+                player.rect.bottom = rect.top
                 player.update_hitbox()
                 player.y_velocity = 0
-                game_state.camera_x = max(0, min(player.rect.centerx - game_state.screen_width // (2 * game_state.zoom_factor), 
-                                          game_state.map_width - game_state.screen_width // game_state.zoom_factor))
-                game_state.camera_y = max(0, min(player.rect.centery - game_state.screen_height // (2 * game_state.zoom_factor), 
-                                          game_state.map_height - game_state.screen_height // game_state.zoom_factor))
-                if game_state.current_map == "frozen_cave":
-                    game_state.show_message = True
-                    game_state.message_timer = game_state.message_duration
-                if game_state.current_map == "cyberpunk":
-                    game_state.show2_message = True 
-                    game_state.message2_timer = game_state.message_duration
-                if game_state.current_map == "lab":
-                    game_state.show3_message = True 
-                    game_state.message3_timer = game_state.message_duration
-                return True
+                player.on_ground = True
+                return player.rect.centerx, player.rect.bottom
+        
+        if player.rect.y == prev_y:  # Hareket yoksa çık
+            break
+    
+    # Eğer zemin bulunamazsa orijinal spawn noktasına dön
+    player.rect.centerx = spawn_x
+    player.rect.bottom = spawn_y
+    player.update_hitbox()
+    player.y_velocity = 0
+    player.on_ground = True
+    return spawn_x, spawn_y
+
+def check_map_transitions(player, events):
+    game_state.show_transition_prompt = False
+    game_state.active_transition = None
+
+    for transition_name, transition_data in game_state.transition_rects.items():
+        if player.hitbox.colliderect(transition_data['rect']):
+            game_state.show_transition_prompt = True
+            game_state.active_transition = transition_data
+            break
+
+    target_alpha = 255 if game_state.show_transition_prompt else 0
+    game_state.transition_prompt_alpha += (target_alpha - game_state.transition_prompt_alpha) * game_state.transition_prompt_fade_speed * 0.016
+    game_state.transition_prompt_alpha = max(0, min(255, game_state.transition_prompt_alpha))
+    game_state.transition_prompt_scale = 1.0 + 0.1 * (pygame.time.get_ticks() % 1000 / 1000)
+
+    if game_state.show_transition_prompt and not game_state.is_fading:
+        for event in events:
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_e:
+                if game_state.active_transition:
+                    target_map = game_state.active_transition['info']['target_map']
+                    target_spawn = game_state.active_transition['info']['target_spawn']
+                    if target_map != game_state.current_map:
+                        game_state.is_fading = True
+                        game_state.fade_state = "out"
+                        game_state.target_map = target_map
+                        game_state.target_spawn = target_spawn
+                        sound_manager.play_sound("click")
+                        print(f"Geçiş başlatıldı: {target_map}")
+                        return True
     return False
+
+def draw_transition_prompt(surface, camera_x, camera_y):
+    if not game_state.show_transition_prompt or game_state.transition_prompt_alpha <= 0:
+        return
+
+    prompt_text = game_state.font.render("E", color=(255, 255, 255), background=(0, 0, 0), shadow=True)
+    prompt_text.set_alpha(int(game_state.transition_prompt_alpha))
+    text_width, text_height = game_state.font.get_size("E")
+    
+    if game_state.active_transition:
+        rect = game_state.active_transition['rect']
+        screen_x = ((rect.centerx - camera_x) * game_state.zoom_factor) - text_width // 2
+        screen_y = ((rect.top - camera_y - 20) * game_state.zoom_factor) - text_height // 2
+        scaled_width = text_width * game_state.transition_prompt_scale
+        scaled_height = text_height * game_state.transition_prompt_scale
+        scaled_prompt = pygame.transform.scale(prompt_text, (int(scaled_width), int(scaled_height)))
+        surface.blit(scaled_prompt, (screen_x, screen_y - scaled_height // 2))
 
 def draw_layer(layer, surface, camera_x, camera_y):
     if not isinstance(layer, pytmx.TiledTileLayer):
