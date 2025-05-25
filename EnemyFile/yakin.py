@@ -127,8 +127,7 @@ class Yakin(Dusman):
                     return 0
             return dx
             
-        if abs(dy) > 50 and self.on_ground:
-            self.platform_kontrolu(collision_rects, hedef_x, hedef_y)
+        self.platform_kontrolu(collision_rects, hedef_x, hedef_y)
 
         if not self.vuruyor and not self.vuruldu:
             if mesafe > self.saldiri_mesafesi:
@@ -178,7 +177,7 @@ class Yakin(Dusman):
             self.durum = "devriye"
         elif mesafe <= self.saldiri_mesafesi and (self.alerted or (self.can_see_player(hedef) 
         and not self.is_facing_away(hedef))):
-            self.durum = "takip"
+            self.durum = "saldiri"
         elif mesafe <=self.menzilli_saldiri_mesafesi and (self.alerted or (self.can_see_player(hedef)
         and not self.is_facing_away(hedef)))                                                                    :
             self.durum="takip"
