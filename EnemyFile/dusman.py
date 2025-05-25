@@ -162,19 +162,6 @@ class Dusman:
     def update_physics(self, collision_rects):
         self.check_on_ground(collision_rects)
 
-        def handle_horizontal_collisions(dx):
-            self.rect.x += dx
-            self.update_hitbox()
-            for rect in collision_rects:
-                if self.hitbox.colliderect(rect):
-                    if dx > 0:
-                        self.hitbox.right = rect.left
-                        self.rect.right = self.hitbox.right + (self.rect.width - self.hitbox.width) // 2
-                    elif dx < 0:
-                        self.hitbox.left = rect.right
-                        self.rect.left = self.hitbox.left - (self.rect.width - self.hitbox.width) // 2
-                    return 0
-            return dx
 
         self.velocity_y += self.gravity
         if self.velocity_y > 10:
