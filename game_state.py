@@ -2,13 +2,11 @@
 import pygame
 from utils import Font
 from soundmanager import sound_manager
-import enemy_types
-
 
 class GameState:
     def __init__(self):
         self.screen_width = 1600
-        self.screen_height = 600
+        self.screen_height = 900
         self.zoom_factor = 1.5
         self.fps = 60
         self.game_over = False
@@ -40,37 +38,63 @@ class GameState:
         self.font = Font(None, 28)
         self.font_big = Font(None, 48)
         self.clock = pygame.time.Clock()
-                # State constants
         self.DEVRIYE = "devriye"
         self.TAKIP = "takip"
         self.SALDIRI = "saldiri"
-
+        self.show_transition_prompt = False
+        self.transition_prompt_alpha = 0
+        self.transition_prompt_fade_speed = 15
+        self.transition_prompt_scale = 1.0
+        self.active_transition = None
+        self.fade_alpha = 0
+        self.is_fading = False
+        self.fade_speed = 255 / 60
+        self.fade_state = None
+        self.target_map = None
+        self.target_spawn = None
+        self.story_progress = 0
+        self.player = None  # Oyuncu nesnesi için bir yer tutucu
         self.map_characters = {
             "village": {
                 "npcs": [
                     {"type": "Blacksmith", "x": 1200, "y": 1163, "scale": 1}
                 ],
                 "enemies": [
-                {"type": "Wizard", "x": 1200, "y": 1163},
-                {"type":"AnimeKnight", "x": 1200, "y": 1163}]  # Village'da düşman yok enemy_types.YamabushiTengu(1200, 1200)
+                    {"type": "AnimeKnight", "x": 1200, "y": 1163},
+                    {"type": "AnimeKnight", "x": 1500, "y": 1163},
+                    {"type": "AnimeKnight", "x": 1600, "y": 1163},
+                    {"type": "AnimeKnight", "x": 1800, "y": 1163}
+                ]
             },
             "frozen_cave": {
-                "npcs": [{"type": "Trader", "x": 2300, "y": 832, "scale": 1}],  # Örnek: Yeni NPC eklenebilir #2250,768
+                "npcs": [{"type": "Trader", "x": 2300, "y": 832, "scale": 1}],
                 "enemies": [
-                    {"type": "NinjaMonk", "x": 800, "y": 1000, "scale": 1}
+                    {"type": "NinjaMonk", "x": 800, "y": 1000, "scale": 1},
+                    {"type": "NinjaMonk", "x": 1000, "y": 1000, "scale": 1},
+                    {"type": "NinjaMonk", "x": 1200, "y": 1000, "scale": 1},
+                    {"type": "NinjaMonk", "x": 1400, "y": 1000, "scale": 1},
+                    {"type": "NinjaMonk", "x": 1600, "y": 1000, "scale": 1}
                 ]
             },
-            "cyberpunk": {
-                "npcs": [],  # Örnek: Yeni NPC eklenebilir
+            "cyberpunk_mahalle": {
+                "npcs": [],
                 "enemies": [
                     {"type": "NinjaMonk", "x": 900, "y": 1100, "scale": 1, "speed": 2, "range": 200},
-                    {"type": "NinjaMonk", "x": 1100, "y": 1100, "scale": 1, "speed": 2, "range": 200}
+                    {"type": "NinjaMonk", "x": 1100, "y": 1100, "scale": 1, "speed": 2, "range": 200},
+                    {"type": "NinjaMonk", "x": 1300, "y": 1100, "scale": 1, "speed": 2, "range": 200}
                 ]
             },
-            "lab": {
-                "npcs": [],  # Örnek: Yeni NPC eklenebilir
+            "laboratuvar": {
+                "npcs": [{"type": "Doctor", "x": 1900, "y": 352, "scale": 1}],
                 "enemies": [
-                    {"type": "NinjaMonk", "x": 1000, "y": 1200, "scale": 1, "speed": 2, "range": 200}
+                    {"type": "NinjaMonk", "x": 1000, "y": 1200, "scale": 1, "speed": 2, "range": 200},
+                    {"type": "NinjaMonk", "x": 1200, "y": 1200, "scale": 1, "speed": 2, "range": 200}
+                ]
+            },
+            "castle": {
+                "npcs": [],
+                "enemies": [
+                    {"type": "KaraSamurai", "x": 2000, "y": 1000, "scale": 1.5}
                 ]
             }
         }
