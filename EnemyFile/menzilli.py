@@ -76,7 +76,7 @@ class Menzilli(Yakin):
         super().__init__(x, y, hiz, can, guc, sprite_klasoru, animasyonlar, sprite_soneki)
         self.mermi_hizi = 4
         self.mermi_menzili = 200
-        self.menzilli_saldiri_mesafesi = 300
+        self.menzilli_saldiri_mesafesi = 200
         self.mermiler = []
 
     def saldiri(self, hedef):
@@ -94,7 +94,7 @@ class Menzilli(Yakin):
 
         if mesafe<=self.saldiri_mesafesi:
             self.vuruyor=True
-            self.mevcut_animasyon=random.choice(self.available_attacks)
+            self.mevcut_animasyon="Attack_3"
             self.kare_indeksi=0
             hedef.hasar_al(self.guc)
             self.son_saldiri_zamani=simdiki_zaman
