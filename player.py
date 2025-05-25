@@ -2,34 +2,49 @@ import pygame
 from game_state import game_state
 from soundmanager import sound_manager
 
+
 class Arrow(pygame.sprite.Sprite):
-    # Class variable for the sound - load this once
-    hit_sound = None
-    
     def __init__(self, x, y, direction, speed=8):
         pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.image.load("player sprite sheets/Arrow.png").convert_alpha()
-        self.rect = self.image.get_rect()
-        self.rect.center = (x, y+15)
+        try:
+            self.image = pygame.image.load("player sprite sheets/Arrow.png").convert_alpha()
+        except FileNotFoundError:
+            print("Hata: Arrow.png dosyası bulunamadı!")
+            self.image = pygame.Surface((64, 64))  # Fallback: kırmızı kutu
+            self.image.fill((255, 0, 0))
+        self.rect = self.image.get_rect()  # 64x64 sprite boyutunu kullan
+        self.rect.center = (x, y + 15)
         self.speed = speed
         self.direction = direction  # 1: sağ, -1: sol
         self.damage = 25
-        
-        # hit_sound artık SoundManager'da yönetiliyor
-    
-    def update(self, collision_rects, enemies):
+        self.spawn_timer = 0  # İlk 5 karede çarpışma yok sayılır
+
+    def update(self, collision_rects, enemies,player):
         self.rect.x += self.speed * self.direction
+        print(f"Ok pozisyonu: x={self.rect.x}, y={self.rect.y}")
         for rect in collision_rects:
             if self.rect.colliderect(rect):
+                print("Ok duvara çarptı ve yok edildi")
                 self.kill()
                 return
-        for enemy in enemies:
-            if enemy.alive and self.rect.colliderect(enemy.hitbox):
-                enemy.get_hit(self.damage)
-                sound_manager.play_sound("arrow_hit", volume=0.5)
-                self.kill()
-                return
-    
+        for enemy in enemies[:]:
+            if hasattr(enemy, 'can') and enemy.can > 0:
+                if self.rect.colliderect(enemy.hitbox):
+                    if hasattr(enemy, 'hasar_al'):
+                        enemy.hasar_al(self.damage)
+                        print(f"Ok {enemy.__class__.__name__}'e çarptı, {self.damage} hasar verdi, Kalan can: {enemy.can}")
+                        if enemy.can <= 0 and hasattr(enemy, 'olum_animasyonu_tamamlandi') and enemy.olum_animasyonu_tamamlandi:
+                            # XP kazanımı
+                            xp_amount = 50 if enemy.__class__.__name__ == "AnimeKnight" else 100
+                            player.gain_xp(xp_amount)
+                            enemies.remove(enemy)
+                            print(f"Düşman öldü ve listeden kaldırıldı: {enemy.__class__.__name__}")
+                    else:
+                        print(f"Hata: {enemy.__class__.__name__} sınıfında hasar_al metodu bulunamadı!")
+                    sound_manager.play_sound("arrow_hit", volume=0.5)
+                    self.kill()
+                    return
+
     def draw(self, surface, camera_x, camera_y):
         screen_x = (self.rect.x - camera_x) * game_state.zoom_factor
         screen_y = (self.rect.y - camera_y) * game_state.zoom_factor
@@ -39,18 +54,24 @@ class Arrow(pygame.sprite.Sprite):
         if self.direction == -1:
             scaled_image = pygame.transform.flip(scaled_image, True, False)
         surface.blit(scaled_image, (screen_x, screen_y))
+        # Debug: Okun hitbox’ını çiz (yeşil çerçeve)
+        hitbox_x = screen_x
+        hitbox_y = screen_y
+        hitbox_width = self.rect.width * game_state.zoom_factor
+        hitbox_height = self.rect.height * game_state.zoom_factor
+        pygame.draw.rect(surface, (0, 255, 0), (hitbox_x, hitbox_y, hitbox_width, hitbox_height), 2)
 
 class Samurai(pygame.sprite.Sprite):
     def __init__(self, walk_spritesheet, idle_spritesheet, jump_spritesheet, 
                  run_spritesheet, attack1_spritesheet, attack2_spritesheet, attack3_spritesheet, 
-                 hurt_spritesheet, death_spritesheet, shot_spritesheet, 
+                 elixir_spritesheet, hurt_spritesheet, death_spritesheet, shot_spritesheet, 
                  x, y, scale, speed):
         pygame.sprite.Sprite.__init__(self)
         # Mevcut __init__ içeriği
         self.speed = speed
         self.flip = False
         self.frame_index = 0
-        self.animation_speed = max(1, round(60 / 12))
+        self.animation_speed = max(1, round(60 / 6))
         self.update_counter = 0
         self.is_moving = False
         self.is_running = False
@@ -74,7 +95,7 @@ class Samurai(pygame.sprite.Sprite):
         self.last_hit_sound_time = 0
         self.hit_sound_cooldown = 100
         self.max_health = 100
-        self.health = self.max_health
+        self.health = 50
         self.potions_collected = 0
         self.attack_damage = 20
         self.enemies_defeated = 0
@@ -103,9 +124,17 @@ class Samurai(pygame.sprite.Sprite):
         self.last_grounded_time = 0  # Son yerde olduğu zaman
         self.is_in_dialogue = False  # Yeni bayrak: Diyalog durumunda mı?
 
+        # Yeni: XP ve seviye özellikleri
+        self.level = 1
+        self.xp = 0
+        self.max_xp = 100  # İlk seviye için gerekli XP
+        # Animasyon yükleme ve diğer başlatma kodları (mevcut kod değişmeden kalır)
+
+
         # Mevcut animasyon yüklemeleri
         self.walk_frames = walk_spritesheet.get_animation_frames(128, 128, scale)
         self.idle_frames = idle_spritesheet.get_animation_frames(128, 128, scale)
+        self.elixir_frames = elixir_spritesheet.get_animation_frames(128, 128, scale)
         self.jump_frames = jump_spritesheet.get_animation_frames(128, 128, scale)
         self.run_frames = run_spritesheet.get_animation_frames(128, 128, scale)
         self.attack1_frames = attack1_spritesheet.get_animation_frames(128, 128, scale)[:-1]
@@ -129,6 +158,26 @@ class Samurai(pygame.sprite.Sprite):
         self.attack_hitbox = pygame.Rect(0, 0, 60, 40)
         self.grab_area = pygame.Rect(0, 0, self.hitbox.width * 1.2, 20)
         self.update_grab_area()
+
+
+    def gain_xp(self, amount):
+        self.xp += amount
+        print(f"XP kazanıldı: +{amount}, Toplam XP: {self.xp}/{self.max_xp}")
+        while self.xp >= self.max_xp:
+            self.level_up()
+
+    def level_up(self):
+        self.level += 1
+        self.xp -= self.max_xp
+        self.max_xp = int(self.max_xp * 1.5)  # Her seviye için XP gereksinimi %50 artar
+        self.max_health += 20  # Seviye atladığında maksimum can +20
+        self.health = self.max_health  # Canı fulle
+        self.attack_damage += 5  # Saldırı hasarı +5
+        print(f"Seviye atladın! Yeni seviye: {self.level}, Max HP: {self.max_health}, Saldırı: {self.attack_damage}")
+        # Oyuncuya mesaj göster
+        game_state.show_message = True
+        game_state.message_text = f"Seviye {self.level}! Güç ve can arttı!"
+        game_state.message_timer = 180
 
     def check_on_ground(self, collision_rects):
         """Zeminde olup olmadığını kontrol eder ve coyote time'ı günceller"""
@@ -382,21 +431,21 @@ class Samurai(pygame.sprite.Sprite):
         print(f"Saldırı hasarı artırıldı! Yeni hasar: {self.attack_damage}")
 
     def shoot(self, arrow_group):
-        # Hasar alınıyorsa veya ölü ise ok atamaz
         if self.is_hurt or self.is_dead or self.is_in_dialogue:
-            print(f"Ok atılamadı: is_hurt={self.is_hurt}, is_dead={self.is_dead}")
+            print(f"Ok atılamadı: is_hurt={self.is_hurt}, is_dead={self.is_dead}, is_in_dialogue={self.is_in_dialogue}")
             return
         if self.is_shooting or self.shot_cooldown > 0 or self.arrow_count <= 0:
             print(f"Ok atılamadı: is_shooting={self.is_shooting}, shot_cooldown={self.shot_cooldown}, arrow_count={self.arrow_count}")
             return
-        if self.is_running or self.is_jumping or self.is_moving or self.is_attacking:
-            print("Ok atılamadı: Karakter koşuyor, zıplıyor, hareket ediyor veya saldırıyor!")
-            return
+        # Hareket kısıtlamasını kaldırıyoruz
+        # if self.is_running or self.is_jumping or self.is_moving or self.is_attacking:
+        #     print("Ok atılamadı: Karakter koşuyor, zıplıyor, hareket ediyor veya saldırıyor!")
+        #     return
         print("Ok atma animasyonu başladı!")
         self.is_shooting = True
         self.shot_finished = False
         self.frame_index = 0
-        self.update_counter = 0
+        self.update_time = 0  # Animasyon zamanlayıcısını sıfırla
         self.shot_cooldown = 30
         self.arrow_count -= 1
 
@@ -436,28 +485,29 @@ class Samurai(pygame.sprite.Sprite):
         if self.is_attacking and not self.attack_finished:
             if self.frame_index == len(self.current_attack_frames) // 2:
                 self.update_attack_hitbox()
-                for enemy in enemies:
-                    # Check if enemy is alive
+                for enemy in enemies[:]:  # Liste kopyası üzerinde iterasyon yap
                     if hasattr(enemy, 'alive') and enemy.alive or hasattr(enemy, 'canli_mi') and enemy.canli_mi():
                         if self.attack_hitbox.colliderect(enemy.hitbox):
-                            # Apply damage based on enemy type
-                            if hasattr(enemy, 'hasar_al'):  # Dusman-based enemies (AnimeKnight, Wizard)
+                            if hasattr(enemy, 'hasar_al'):
                                 enemy.hasar_al(self.attack_damage)
-                            elif hasattr(enemy, 'get_hit'):  # Canavar-based enemies (NinjaMonk)
+                            elif hasattr(enemy, 'get_hit'):
                                 enemy.get_hit(self.attack_damage)
-                            # Check if enemy is now dead
-                            if hasattr(enemy, 'alive') and not enemy.alive or hasattr(enemy, 'canli_mi') and not enemy.canli_mi():
+                            if hasattr(enemy, 'canli_mi') and not enemy.canli_mi() or hasattr(enemy, 'can') and enemy.can <= 0:
                                 self.enemies_defeated += 1
+                                # XP kazanımı
+                                xp_amount = 50 if enemy.__class__.__name__ == "AnimeKnight" else 100  # Örnek: AnimeKnight 50 XP, Wizard 100 XP
+                                self.gain_xp(xp_amount)
+                                enemies.remove(enemy)  # Düşmanı listeden kaldır
+                                print(f"Düşman öldü ve listeden kaldırıldı: {enemy.__class__.__name__}")
                                 if self.enemies_defeated % 5 == 0:
                                     self.increase_attack_damage(5)
-                            # Play hit sound
-                            if not self.sound_triggered and current_time - self.last_hit_sound_time > self.hit_sound_cooldown:
-                                sound_manager.play_sound("hit")
-                                self.last_hit_sound_time = current_time
-                                self.sound_triggered = True
-                            return True
+                                if not self.sound_triggered and current_time - self.last_hit_sound_time > self.hit_sound_cooldown:
+                                    sound_manager.play_sound("hit")
+                                    self.last_hit_sound_time = current_time
+                                    self.sound_triggered = True
+                                return True
         return False
-    
+        
 
     def reset(self):
         self.health = self.max_health
@@ -594,9 +644,9 @@ class Samurai(pygame.sprite.Sprite):
 
     # Update the draw method to include health bar and flashing when invincible:
     def draw(self, surface, camera_x, camera_y):
-        if self.invincibility_counter > 0 and self.invincibility_counter % 4 < 2:
-            self.draw_health_bar(surface, camera_x, camera_y)
-            return
+      
+        self.draw_health_bar(surface, camera_x, camera_y)
+            
 
         screen_x = (self.rect.x - camera_x) * game_state.zoom_factor
         screen_y = (self.rect.y - camera_y) * game_state.zoom_factor
