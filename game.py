@@ -3,22 +3,19 @@ import pytmx
 import sys
 import json
 import pygame.time
-from npc import Blacksmith, Trader
+from npc import Blacksmith, Trader, Doctor
 from game_state import game_state
 from camera import Camera
-from map import load_map, check_map_transitions, draw_layer, find_spawn_point
+from map import load_map, check_map_transitions, draw_layer, find_spawn_point, draw_transition_prompt, adjust_spawn_to_ground
 from player import Samurai
 from utils import Spritesheet
 from soundmanager import sound_manager
 from items import HealthPotion
 import enemy_types
 
-
-#from enemy_types import NinjaMonk, NinjaPeasant
-
 pygame.init()
 screen = pygame.display.set_mode((game_state.screen_width, game_state.screen_height))
-pygame.display.set_caption("Samurai's Path")
+pygame.display.set_caption("Samurai's Path")    
 clock = pygame.time.Clock()
 
 def set_zoom(factor):
@@ -34,14 +31,10 @@ run_spritesheet = Spritesheet("player sprite sheets/Run.png")
 attack1_spritesheet = Spritesheet("player sprite sheets/Attack_1.png")
 attack2_spritesheet = Spritesheet("player sprite sheets/Attack_2.png")
 attack3_spritesheet = Spritesheet("player sprite sheets/Attack_3.png")
+elixir_spritesheet = Spritesheet("player sprite sheets/Elixir.png")
 shot_spritesheet = Spritesheet("player sprite sheets/Shot.png")
 hurt_spritesheet = Spritesheet("player sprite sheets/Hurt.png")
 death_spritesheet = Spritesheet("player sprite sheets/Dead.png")
-
-"""dusman_listesi=[
-    enemy_types.AnimeKnight(900,1000),
-    enemy_types.Wizard(3000,1200)
-]"""
 
 def load_map_characters():
     global npcs, enemies
@@ -65,6 +58,10 @@ def load_map_characters():
             npc = Trader(x, y, scale)
             npcs.append(npc)
             print(f"{npc_type} yüklendi: ({x}, {y})")
+        elif npc_type == "Doctor":
+            npc = Doctor(x, y, scale)
+            npcs.append(npc)
+            print(f"{npc_type} yüklendi: ({x}, {y})")
         else:
             print(f"Uyarı: Bilinmeyen NPC türü: {npc_type}")
 
@@ -72,18 +69,14 @@ def load_map_characters():
         enemy_type = enemy_data["type"]
         x, y = enemy_data["x"], enemy_data["y"]
         scale = enemy_data.get("scale", 1)
-        '''if enemy_type == "Wizard":
-            enemy_data = enemy_types.Wizard(x, y, game_state)
-            enemies.append(enemy_data)
-            print(f"{enemy_type} yüklendi: ({x}, {y})")'''
         if enemy_type == "AnimeKnight":
             enemy_data = enemy_types.AnimeKnight(x, y, walk_spritesheet, idle_spritesheet, jump_spritesheet, run_spritesheet, attack1_spritesheet, attack2_spritesheet, attack3_spritesheet, hurt_spritesheet, death_spritesheet)
             enemies.append(enemy_data)
             print(f"{enemy_type} yüklendi: ({x}, {y})")
-        
 
 try:
     load_map(game_state.current_map)
+    sound_manager.play_ambiance(game_state.current_map)
     print(f"Harita yüklendi: {game_state.current_map}, tmx_data: {game_state.tmx_data}")
 except Exception as e:
     print(f"Başlangıç haritası yüklenirken hata: {e}")
@@ -93,12 +86,13 @@ except Exception as e:
 player_spawn = find_spawn_point()
 print(f"Spawn noktası: {player_spawn}")
 player = Samurai(walk_spritesheet, idle_spritesheet, jump_spritesheet, 
-                run_spritesheet, attack1_spritesheet, attack2_spritesheet, attack3_spritesheet, 
-                hurt_spritesheet, death_spritesheet, shot_spritesheet,
-                player_spawn[0], player_spawn[1], 1, 3)
+                 run_spritesheet, attack1_spritesheet, attack2_spritesheet, attack3_spritesheet, 
+                 elixir_spritesheet, hurt_spritesheet, death_spritesheet, shot_spritesheet,
+                 player_spawn[0], player_spawn[1], 1, 3)
 player.on_ground = False
 player.y_velocity = 1
 
+arrows = pygame.sprite.Group()
 npcs = []
 enemies = []
 load_map_characters()
@@ -110,10 +104,6 @@ def restart_game():
     enemies.clear()
     load_map_characters()
 
-camera = Camera(game_state.map_width, game_state.map_height)
-arrows = pygame.sprite.Group()
-layer_suraaaes = {}
-
 def save_game():
     saving_text = game_state.font_big.render("Saving...", color=(255, 255, 255), shadow=True)
     text_rect = saving_text.get_rect(center=(game_state.screen_width // 2, game_state.screen_height // 2))
@@ -121,6 +111,7 @@ def save_game():
     screen.blit(saving_text, text_rect)
     pygame.display.flip()
     pygame.time.wait(1000)
+    
     save_data = {
         "player_pos": (player.rect.x, player.rect.y),
         "health": player.health,
@@ -129,8 +120,21 @@ def save_game():
         "enemies_defeated": player.enemies_defeated,
         "attack_damage": player.attack_damage,
         "arrow_count": player.arrow_count,
+        "xp": player.xp,
+        "level": player.level,
+        "max_xp": player.max_xp,
         "current_map": game_state.current_map,
-        "enemies": [],
+        "current_ambiance": sound_manager.current_ambiance,
+        "enemies": [
+            {
+                "type": enemy.__class__.__name__,
+                "pos": (enemy.rect.x, enemy.rect.y),
+                "can": getattr(enemy, "can", 0),
+                "scale": getattr(enemy, "scale", 1),
+                "current_animation": getattr(enemy, "mevcut_animasyon", "idle"),
+                "frame_index": getattr(enemy, "kare_indeksi", 0)
+            } for enemy in enemies if hasattr(enemy, "can") and enemy.can > 0
+        ],
         "health_potions": [
             {
                 "pos": (potion.rect.x, potion.rect.y),
@@ -142,13 +146,16 @@ def save_game():
                 "type": npc.name,
                 "pos": [npc.rect.x, npc.rect.y],
                 "scale": npc.scale if hasattr(npc, "scale") else 1,
-                "dialogue_index": npc.current_dialogue_index
+                "dialogue_index": npc.current_dialogue_index,
+                "has_accepted": getattr(npc, "has_accepted", False),
+                "task_completed": getattr(npc, "task_completed", False)
             } for npc in npcs
         ]
     }
+    
     try:
         with open("savegame.json", "w") as f:
-            json.dump(save_data, f)
+            json.dump(save_data, f, indent=2)
         saved_text = game_state.font_big.render("Game Saved!", color=(0, 255, 0), shadow=True)
         text_rect = saved_text.get_rect(center=(game_state.screen_width // 2, game_state.screen_height // 2))
         screen.fill((0, 0, 0))
@@ -158,6 +165,12 @@ def save_game():
         print("Oyun kaydedildi!")
     except Exception as e:
         print(f"Oyun kaydedilirken hata: {e}")
+        error_text = game_state.font_big.render(f"Error: {str(e)}", color=(255, 0, 0), shadow=True)
+        text_rect = error_text.get_rect(center=(game_state.screen_width // 2, game_state.screen_height // 2))
+        screen.fill((0, 0, 0))
+        screen.blit(error_text, text_rect)
+        pygame.display.flip()
+        pygame.time.wait(1500)
 
 def load_game(screen):
     global game_state, player, enemies, camera, npcs
@@ -167,42 +180,87 @@ def load_game(screen):
     screen.blit(loading_text, text_rect)
     pygame.display.flip()
     pygame.time.wait(1500)
+    
     try:
         with open("savegame.json", "r") as f:
             save_data = json.load(f)
-            player.rect.x = save_data["player_pos"][0]
-            player.rect.y = save_data["player_pos"][1]
-            player.health = save_data["health"]
-            player.max_health = save_data["max_health"]
-            player.potions_collected = save_data["potions"]
-            player.enemies_defeated = save_data["enemies_defeated"]
-            player.attack_damage = save_data["attack_damage"]
-            player.arrow_count = save_data["arrow_count"]
+            
+            # Oyuncu durumunu yükle
+            player.rect.x = save_data.get("player_pos", [player.rect.x, player.rect.y])[0]
+            player.rect.y = save_data.get("player_pos", [player.rect.x, player.rect.y])[1]
+            player.health = save_data.get("health", player.health)
+            player.max_health = save_data.get("max_health", player.max_health)
+            player.potions_collected = save_data.get("potions", player.potions_collected)
+            player.enemies_defeated = save_data.get("enemies_defeated", player.enemies_defeated)
+            player.attack_damage = save_data.get("attack_damage", player.attack_damage)
+            player.arrow_count = save_data.get("arrow_count", player.arrow_count)
+            player.xp = save_data.get("xp", player.xp)
+            player.level = save_data.get("level", player.level)
+            player.max_xp = save_data.get("max_xp", player.max_xp)
             player.update_hitbox()
-            game_state.current_map = save_data["current_map"]
+            
+            # Harita ve kamera
+            game_state.current_map = save_data.get("current_map", game_state.current_map)
             load_map(game_state.current_map)
+            if save_data.get("current_ambiance"):
+                sound_manager.play_ambiance(save_data["current_ambiance"])
             game_state.camera_x = player.rect.centerx - game_state.screen_width // (2 * game_state.zoom_factor)
             game_state.camera_y = player.rect.centery - game_state.screen_height // (2 * game_state.zoom_factor)
             camera = Camera(game_state.map_width, game_state.map_height)
-            load_map_characters()
+            
+            # Sağlık iksirlerini yükle
             game_state.health_potions.clear()
-            for potion_data in save_data["health_potions"]:
+            for potion_data in save_data.get("health_potions", []):
                 potion = HealthPotion(potion_data["pos"][0], potion_data["pos"][1])
-                potion.collected = potion_data["collected"]
-                game_state.health_potions.append(potion)
+                potion.collected = potion_data.get("collected", False)
+                game_state.health_potions.add(potion)
+            
+            # NPC'leri yükle
             npcs.clear()
             for npc_data in save_data.get("npcs", []):
-                npc_type = npc_data["type"]
-                x, y = npc_data["pos"]
-                scale = npc_data["scale"]
+                npc_type = npc_data.get("type")
+                x, y = npc_data.get("pos", [0, 0])
+                scale = npc_data.get("scale", 1)
                 if npc_type == "Blacksmith":
                     npc = Blacksmith(x, y, scale)
                 elif npc_type == "Trader":
                     npc = Trader(x, y, scale)
+                elif npc_type == "Doctor":
+                    npc = Doctor(x, y, scale)
                 else:
+                    print(f"Uyarı: Bilinmeyen NPC türü: {npc_type}")
                     continue
-                npc.current_dialogue_index = npc_data["dialogue_index"]
+                npc.current_dialogue_index = npc_data.get("dialogue_index", 0)
+                npc.has_accepted = npc_data.get("has_accepted", False)
+                npc.task_completed = npc_data.get("task_completed", False)
                 npcs.append(npc)
+            
+            # Düşmanları yükle
+            enemies.clear()
+            for enemy_data in save_data.get("enemies", []):
+                enemy_type = enemy_data.get("type")
+                x, y = enemy_data.get("pos", [0, 0])
+                scale = enemy_data.get("scale", 1)
+                if enemy_type == "AnimeKnight":
+                    enemy = enemy_types.AnimeKnight(
+                        x, y, walk_spritesheet, idle_spritesheet, jump_spritesheet,
+                        run_spritesheet, attack1_spritesheet, attack2_spritesheet,
+                        attack3_spritesheet, hurt_spritesheet, death_spritesheet
+                    )
+                    enemy.can = enemy_data.get("can", enemy.can)
+                    enemy.mevcut_animasyon = enemy_data.get("current_animation", "idle")
+                    enemy.kare_indeksi = enemy_data.get("frame_index", 0)
+                    enemies.append(enemy)
+                    print(f"{enemy_type} yüklendi: ({x}, {y}), Can: {enemy.can}")
+                else:
+                    print(f"Uyarı: Bilinmeyen düşman türü: {enemy_type}")
+            
+            # Yüklenen pozisyonu zemine hizala
+            adjusted_pos = adjust_spawn_to_ground(player, player.rect.x, player.rect.y)
+            player.rect.centerx = adjusted_pos[0]
+            player.rect.bottom = adjusted_pos[1]
+            player.update_hitbox()
+            
             loaded_text = game_state.font_big.render("Game Loaded!", color=(0, 255, 0), shadow=True)
             text_rect = loaded_text.get_rect(center=(game_state.screen_width // 2, game_state.screen_height // 2))
             screen.fill((0, 0, 0))
@@ -210,6 +268,7 @@ def load_game(screen):
             pygame.display.flip()
             pygame.time.wait(500)
             print("Oyun yüklendi!")
+            
     except FileNotFoundError:
         error_text = game_state.font_big.render("No Save File Found!", color=(255, 0, 0), shadow=True)
         text_rect = error_text.get_rect(center=(game_state.screen_width // 2, game_state.screen_height // 2))
@@ -218,6 +277,14 @@ def load_game(screen):
         pygame.display.flip()
         pygame.time.wait(1000)
         print("Kayıt dosyası bulunamadı!")
+    except json.JSONDecodeError:
+        error_text = game_state.font_big.render("Corrupted Save File!", color=(255, 0, 0), shadow=True)
+        text_rect = error_text.get_rect(center=(game_state.screen_width // 2, game_state.screen_height // 2))
+        screen.fill((0, 0, 0))
+        screen.blit(error_text, text_rect)
+        pygame.display.flip()
+        pygame.time.wait(1500)
+        print("Kayıt dosyası bozuk!")
     except Exception as e:
         print(f"Oyun yüklenirken hata: {e}")
         error_text = game_state.font_big.render(f"Error: {str(e)}", color=(255, 0, 0), shadow=True)
@@ -227,13 +294,13 @@ def load_game(screen):
         pygame.display.flip()
         pygame.time.wait(1500)
 
-
 running = True
 moving_left = False
 moving_right = False
 running_fast = False
-# In game.py, before the main loop
-print("game_state.zoom_factor:", getattr(game_state, 'zoom_factor', 'Not defined'))
+fade_surface = pygame.Surface((game_state.screen_width, game_state.screen_height))
+fade_surface.fill((0, 0, 0))
+
 while running:
     dt = clock.tick(game_state.fps) / 1000.0
     events = pygame.event.get()
@@ -251,19 +318,16 @@ while running:
                 moving_left = True
             if event.key == pygame.K_d:
                 moving_right = True
-            if event.key in (pygame.K_SPACE,pygame.K_w):
+            if event.key == pygame.K_SPACE:
                 player.jump()
             if event.key == pygame.K_j:
                 player.attack(1)
-            if game_state.current_map in ["frozen_cave", "cyberpunk", "lab", "castle"]:
-                if event.key == pygame.K_k:
-                    player.attack(2)
-            if game_state.current_map in ["cyberpunk", "lab", "castle"]:
-                if event.key == pygame.K_l:
-                    player.attack(3)
-            if game_state.current_map in ["lab", "castle"]:
-                if event.key == pygame.K_o:
-                    player.shoot(arrows)
+            if event.key == pygame.K_k:
+                player.attack(2)
+            if event.key == pygame.K_l:
+                player.attack(3)
+            if event.key == pygame.K_o:
+                player.shoot(arrows)
             if event.key in (pygame.K_LSHIFT, pygame.K_RSHIFT):
                 running_fast = True
             if game_state.game_over and event.key == pygame.K_r:
@@ -288,19 +352,38 @@ while running:
             if event.key == pygame.K_SPACE:
                 player.release_jump()
 
-    player.move(moving_left, moving_right, running_fast, game_state.collision_rects)
-    player.update(game_state.collision_rects, game_state.spike_rects, enemies, arrows, dt)
-    # Güncelleme
+    if game_state.is_fading:
+        if game_state.fade_state == "out":
+            game_state.fade_alpha += game_state.fade_speed
+            if game_state.fade_alpha >= 255:
+                game_state.fade_alpha = 255
+                game_state.fade_state = "in"
+                game_state.current_map = game_state.target_map
+                load_map(game_state.current_map)
+                spawn_pos = find_spawn_point(game_state.target_spawn)
+                adjusted_pos = adjust_spawn_to_ground(player, spawn_pos[0], spawn_pos[1])
+                player.rect.centerx = adjusted_pos[0]
+                player.rect.bottom = adjusted_pos[1]
+                player.update_hitbox()
+                player.y_velocity = 0
+                load_map_characters()
+        elif game_state.fade_state == "in":
+            game_state.fade_alpha -= game_state.fade_speed
+            if game_state.fade_alpha <= 0:
+                game_state.fade_alpha = 0
+                game_state.is_fading = False
+                sound_manager.play_ambiance(game_state.current_map)
+    
+    else:
+        sound_manager.update_boss_music()
+        player.move(moving_left, moving_right, running_fast, game_state.collision_rects)
+        if not player.is_in_dialogue:
+            player.update(game_state.collision_rects, game_state.spike_rects, enemies, arrows, dt)
 
-
-    for npc in npcs:
-        npc.update(player, events)
-
-    if check_map_transitions(player):
-        load_map_characters()
-        camera = Camera(game_state.map_width, game_state.map_height)
-        continue
-
+        for npc in npcs:
+            npc.update(player, events)
+        check_map_transitions(player, events)
+            
     CAMERA_LERP = 0.05
     target_x = player.rect.centerx - game_state.screen_width // (2 * game_state.zoom_factor)
     target_y = player.rect.centery - game_state.screen_height // (2 * game_state.zoom_factor)
@@ -322,14 +405,13 @@ while running:
     for potion in game_state.health_potions:
         if player.hitbox.colliderect(potion.hitbox):
             if player.heal(potion.healing_amount):
+                sound_manager.play_sound("potion")
                 potion_hits.append(potion)
     
     for potion in potion_hits:
         game_state.health_potions.remove(potion)
 
     player.draw(screen, game_state.camera_x, game_state.camera_y)
-
-    
 
     for potion in game_state.health_potions:
         potion.draw(screen, game_state.camera_x, game_state.camera_y)
@@ -341,20 +423,23 @@ while running:
     for npc in npcs:
         npc.draw(screen, game_state.camera_x, game_state.camera_y, game_state.font, game_state.zoom_factor, player)
 
-    player.update_animation()
+    player.update_animation(arrows)
     for dusman in enemies:
         dusman.animasyonu_guncelle()
 
-    # Update enemies
     for dusman in enemies[:]:
+        if hasattr(dusman, 'can') and dusman.can <= 0 and hasattr(dusman, 'olum_animasyonu_tamamlandi') and dusman.olum_animasyonu_tamamlandi:
+            enemies.remove(dusman)
+            print(f"Düşman listeden kaldırıldı: {dusman.__class__.__name__}")
+            continue
         print(f"Düşman: {dusman.__class__.__name__}, Pozisyon: ({dusman.rect.centerx}, {dusman.rect.bottom}), Animasyon: {dusman.mevcut_animasyon}, Can: {dusman.can}")
         dusman.guncelle(player, game_state.collision_rects)
-
-    arrows.update(game_state.collision_rects, enemies)
+    
+    arrows.update(game_state.collision_rects, enemies, player)
     for arrow in arrows:
         arrow.draw(screen, game_state.camera_x, game_state.camera_y)
 
-    
+    draw_transition_prompt(screen, game_state.camera_x, game_state.camera_y)
 
     if player.is_dead and player.death_finished:
         game_state.game_over = True
@@ -376,8 +461,14 @@ while running:
         color=(255, 255, 255),
         shadow=True,
         background=(50, 50, 50, 150))
-    
     screen.blit(arrow_text, (10, 90))
+
+    level_text = game_state.font.render(
+        f"Seviye: {player.level} XP: {player.xp}/{player.max_xp}",
+        color=(255, 255, 255),
+        shadow=True,
+        background=(50, 50, 50, 150))
+    screen.blit(level_text, (10, 135))
 
     if game_state.show_message:
         game_state.message_timer -= 1
@@ -400,6 +491,10 @@ while running:
         msg3_surface = game_state.font_big.render(game_state.message3_text, color=(0, 0, 0), shadow=True)
         msg3_rect = msg3_surface.get_rect(center=(game_state.screen_width // 2, game_state.screen_height // 20))
         screen.blit(msg3_surface, msg3_rect)
+
+    if game_state.fade_alpha > 0:
+        fade_surface.set_alpha(int(game_state.fade_alpha))
+        screen.blit(fade_surface, (0, 0))
 
     for dusman in enemies:
         dusman.ciz(screen, game_state.camera_x, game_state.camera_y, game_state.zoom_factor)
