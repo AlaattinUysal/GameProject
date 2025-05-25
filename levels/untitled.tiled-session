@@ -1,0 +1,528 @@
+{
+    "Map/SizeTest": {
+        "height": 4300,
+        "width": 2
+    },
+    "activeFile": "cyberpunk/tsx files/adds and graffitis.tsx",
+    "expandedProjectPaths": [
+        ".",
+        "village/tp japan set",
+        "village"
+    ],
+    "fileStates": {
+        "C:/Users/dell/Downloads/GameProject-feature-platform (1)/GameProject-feature-platform/levels/village/cloud tileset.tsx": {
+            "scaleInDock": 1
+        },
+        "C:/Users/dell/Downloads/GameProject-feature-platform (1)/GameProject-feature-platform/levels/village/grass tileset.tsx": {
+            "scaleInDock": 1
+        },
+        "C:/Users/dell/Downloads/GameProject-feature-platform (1)/GameProject-feature-platform/levels/village/ground set.tsx": {
+            "scaleInDock": 1
+        },
+        "C:/Users/dell/Downloads/GameProject-feature-platform (1)/GameProject-feature-platform/levels/village/house set.tsx": {
+            "scaleInDock": 1
+        },
+        "C:/Users/dell/Downloads/GameProject-feature-platform (1)/GameProject-feature-platform/levels/village/mountain tileset.tsx": {
+            "scaleInDock": 1
+        },
+        "C:/Users/dell/Downloads/GameProject-feature-platform (1)/GameProject-feature-platform/levels/village/sky tileset.tsx": {
+            "scaleInDock": 1
+        },
+        "C:/Users/dell/Downloads/GameProject-feature-platform (1)/GameProject-feature-platform/levels/village/sky.tsx": {
+            "scaleInDock": 1
+        },
+        "C:/Users/dell/Downloads/GameProject-feature-platform (1)/GameProject-feature-platform/levels/village/tree'.tsx": {
+            "scaleInDock": 1
+        },
+        "C:/Users/dell/Downloads/GameProject-feature-platform (1)/GameProject-feature-platform/levels/village/tree2'.tsx": {
+            "scaleInDock": 1
+        },
+        "C:/Users/dell/Downloads/GameProject-feature-platform (1)/GameProject-feature-platform/levels/village/village.tmx": {
+            "scale": 0.4519921875,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 1920.3871748336362,
+                "y": 839.6162820845218
+            }
+        },
+        "C:/Users/dell/Downloads/GameProject-feature-platform/GameProject-feature-platform/levels/village/cloud tileset.tsx": {
+            "scaleInDock": 1
+        },
+        "C:/Users/dell/Downloads/GameProject-feature-platform/GameProject-feature-platform/levels/village/grass tileset.tsx": {
+            "scaleInDock": 1
+        },
+        "C:/Users/dell/Downloads/GameProject-feature-platform/GameProject-feature-platform/levels/village/ground set.tsx": {
+            "scaleInDock": 1
+        },
+        "C:/Users/dell/Downloads/GameProject-feature-platform/GameProject-feature-platform/levels/village/house set.tsx": {
+            "scaleInDock": 1
+        },
+        "C:/Users/dell/Downloads/GameProject-feature-platform/GameProject-feature-platform/levels/village/mountain tileset.tsx": {
+            "scaleInDock": 1
+        },
+        "C:/Users/dell/Downloads/GameProject-feature-platform/GameProject-feature-platform/levels/village/sky tileset.tsx": {
+            "scaleInDock": 1
+        },
+        "C:/Users/dell/Downloads/GameProject-feature-platform/GameProject-feature-platform/levels/village/sky.tsx": {
+            "scaleInDock": 1
+        },
+        "C:/Users/dell/Downloads/GameProject-feature-platform/GameProject-feature-platform/levels/village/tree'.tsx": {
+            "scaleInDock": 1
+        },
+        "C:/Users/dell/Downloads/GameProject-feature-platform/GameProject-feature-platform/levels/village/tree2'.tsx": {
+            "scaleInDock": 1
+        },
+        "C:/Users/dell/Downloads/GameProject-feature-platform/GameProject-feature-platform/levels/village/village.tmx": {
+            "scale": 0.4519921875,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 1918.17474721286,
+                "y": 839.6162820845218
+            }
+        },
+        "cyberpunk/cyberpunk.tmx": {
+            "expandedObjectLayers": [
+                12,
+                11,
+                10
+            ],
+            "scale": 2,
+            "selectedLayer": 4,
+            "viewCenter": {
+                "x": 6641,
+                "y": 562.75
+            }
+        },
+        "cyberpunk/tsx files/1' addition.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "cyberpunk/tsx files/adds and graffitis.tsx": {
+            "scaleInDock": 1.5,
+            "scaleInEditor": 1.5
+        },
+        "cyberpunk/tsx files/bar street props.tsx": {
+            "dynamicWrapping": true,
+            "scaleInDock": 2,
+            "scaleInEditor": 1
+        },
+        "cyberpunk/tsx files/bar street.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 2,
+            "scaleInEditor": 1
+        },
+        "cyberpunk/tsx files/bg1.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 0.5,
+            "scaleInEditor": 1
+        },
+        "cyberpunk/tsx files/bg2.tsx": {
+            "scaleInDock": 0.5,
+            "scaleInEditor": 1
+        },
+        "cyberpunk/tsx files/bg3.tsx": {
+            "scaleInDock": 0.5,
+            "scaleInEditor": 1
+        },
+        "cyberpunk/tsx files/bg4.tsx": {
+            "scaleInDock": 0.5,
+            "scaleInEditor": 1
+        },
+        "cyberpunk/tsx files/bg5.tsx": {
+            "scaleInDock": 0.5,
+            "scaleInEditor": 1
+        },
+        "cyberpunk/tsx files/bridge cable.tsx": {
+            "dynamicWrapping": true,
+            "scaleInDock": 3,
+            "scaleInEditor": 1
+        },
+        "cyberpunk/tsx files/bridge tileset.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "cyberpunk/tsx files/business center props.tsx": {
+            "dynamicWrapping": true,
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "cyberpunk/tsx files/business center tileset.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "cyberpunk/tsx files/industrial zone props.tsx": {
+            "dynamicWrapping": true,
+            "scaleInDock": 1.75,
+            "scaleInEditor": 2
+        },
+        "cyberpunk/tsx files/industrial zone tileset.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1.75,
+            "scaleInEditor": 1
+        },
+        "cyberpunk/tsx files/industrial zone.tsx": {
+            "dynamicWrapping": true,
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "cyberpunk/tsx files/market street props.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "cyberpunk/tsx files/market street tileset.tsx": {
+            "dynamicWrapping": true,
+            "scaleInDock": 2,
+            "scaleInEditor": 1
+        },
+        "cyberpunk/tsx files/market street.tsx": {
+            "dynamicWrapping": true,
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "cyberpunk/tsx files/power station props.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1.5,
+            "scaleInEditor": 1
+        },
+        "cyberpunk/tsx files/power station tileset.tsx": {
+            "dynamicWrapping": true,
+            "scaleInDock": 1.75,
+            "scaleInEditor": 1
+        },
+        "cyberpunk/tsx files/residental area props.tsx": {
+            "dynamicWrapping": true,
+            "scaleInDock": 2,
+            "scaleInEditor": 1
+        },
+        "cyberpunk/tsx files/residental area tileset.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 2,
+            "scaleInEditor": 1
+        },
+        "frozen_cave/frozen cave.tmx": {
+            "expandedObjectLayers": [
+                3
+            ],
+            "scale": 3,
+            "selectedLayer": 20,
+            "viewCenter": {
+                "x": 217.66666666666666,
+                "y": 336.5
+            }
+        },
+        "frozen_cave/frozen_cave.tmx": {
+            "expandedObjectLayers": [
+                3,
+                27,
+                25,
+                2
+            ],
+            "scale": 0.75,
+            "selectedLayer": 8,
+            "viewCenter": {
+                "x": 1280.6666666666665,
+                "y": 640.6666666666665
+            }
+        },
+        "frozen_cave/tsx files/cbg1.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 0.25,
+            "scaleInEditor": 1
+        },
+        "frozen_cave/tsx files/cbg2.tsx": {
+            "scaleInDock": 0.25,
+            "scaleInEditor": 1
+        },
+        "frozen_cave/tsx files/cbg3.tsx": {
+            "scaleInDock": 0.25,
+            "scaleInEditor": 1
+        },
+        "frozen_cave/tsx files/cbg4.tsx": {
+            "scaleInDock": 0.25,
+            "scaleInEditor": 1
+        },
+        "frozen_cave/tsx files/cbg5.tsx": {
+            "scaleInDock": 0.25,
+            "scaleInEditor": 1
+        },
+        "frozen_cave/tsx files/cbg6.tsx": {
+            "scaleInDock": 0.125,
+            "scaleInEditor": 1
+        },
+        "frozen_cave/tsx files/cbg7.tsx": {
+            "scaleInDock": 0.25,
+            "scaleInEditor": 1
+        },
+        "frozen_cave/tsx files/cbg8.tsx": {
+            "scaleInDock": 0.125,
+            "scaleInEditor": 1
+        },
+        "frozen_cave/tsx files/cbg9.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 0.25,
+            "scaleInEditor": 1
+        },
+        "frozen_cave/tsx files/frozen env obj.tsx": {
+            "dynamicWrapping": true,
+            "scaleInDock": 0.25,
+            "scaleInEditor": 1
+        },
+        "frozen_cave/tsx files/frozen env ts.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "frozen_cave/tsx files/obstacles as one layer.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 0.125,
+            "scaleInEditor": 4
+        },
+        "frozen_cave/tsx files/portals.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "frozen_cave/tsx files/snowing.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 4
+        },
+        "frozen_cave/tsx files/wind1.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "frozen_cave/tsx files/wind2.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "frozen_cave/tsx files/wind3.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "frozen_cave/tsx files/winter bg.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "frozen_cave/tsx files/winter bg2.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "frozen_cave/tsx files/winter bg3.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 0.75,
+            "scaleInEditor": 1
+        },
+        "frozen_cave/tsx files/winter bg4.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "frozen_cave/tsx files/winter bg5.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "frozen_cave/tsx files/winter bg6.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "frozen_cave/tsx files/winter bg7.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "frozen_cave/tsx files/winter objects.tsx": {
+            "dynamicWrapping": true,
+            "scaleInDock": 0.5,
+            "scaleInEditor": 4
+        },
+        "frozen_cave/tsx files/winter.tsx": {
+            "dynamicWrapping": true,
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "frozen_cave/tsx files/winterTileset.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1.5,
+            "scaleInEditor": 4
+        },
+        "village/animated trees.tsx": {
+            "dynamicWrapping": true,
+            "scaleInDock": 0.5,
+            "scaleInEditor": 0.75
+        },
+        "village/beach tiles.tsx": {
+            "dynamicWrapping": true,
+            "scaleInDock": 0.5,
+            "scaleInEditor": 2
+        },
+        "village/cloud tileset.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 0.25,
+            "scaleInEditor": 1
+        },
+        "village/example character.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 0.5,
+            "scaleInEditor": 2
+        },
+        "village/grass tileset.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 0.125,
+            "scaleInEditor": 1
+        },
+        "village/ground set.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 0.75,
+            "scaleInEditor": 1.5
+        },
+        "village/house set.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1.5,
+            "scaleInEditor": 0.25
+        },
+        "village/houses.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 2
+        },
+        "village/japan village.tsx": {
+            "dynamicWrapping": true,
+            "scaleInDock": 0.5,
+            "scaleInEditor": 1
+        },
+        "village/missing part.tsx": {
+            "dynamicWrapping": true,
+            "scaleInDock": 0.5,
+            "scaleInEditor": 2
+        },
+        "village/mountain tileset.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 0.33,
+            "scaleInEditor": 1
+        },
+        "village/mountains.tsx": {
+            "dynamicWrapping": true,
+            "scaleInDock": 0.0625,
+            "scaleInEditor": 0.125
+        },
+        "village/portal resized.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "village/portal.tsx": {
+            "dynamicWrapping": true,
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "village/props.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 2,
+            "scaleInEditor": 2
+        },
+        "village/prtls.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "village/sky tileset.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "village/sky.tsx": {
+            "dynamicWrapping": true,
+            "scaleInDock": 1.5,
+            "scaleInEditor": 0.25
+        },
+        "village/tp japan set/tp set.tsx": {
+            "dynamicWrapping": true,
+            "scaleInDock": 0.75,
+            "scaleInEditor": 2
+        },
+        "village/tp set.tsx": {
+            "dynamicWrapping": true,
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "village/tree'.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 0.125,
+            "scaleInEditor": 1
+        },
+        "village/tree2'.tsx": {
+            "scaleInDock": 0.125,
+            "scaleInEditor": 1
+        },
+        "village/untitled.tmx": {
+            "scale": 0.75,
+            "selectedLayer": 1,
+            "viewCenter": {
+                "x": 1002,
+                "y": 959.3333333333334
+            }
+        },
+        "village/village set ground.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 2
+        },
+        "village/village set.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "village/village.tmx": {
+            "expandedObjectLayers": [
+                26,
+                13,
+                28
+            ],
+            "scale": 1,
+            "selectedLayer": 10,
+            "viewCenter": {
+                "x": 1920.5,
+                "y": 840.5
+            }
+        }
+    },
+    "frame.defaultDuration": 100,
+    "last.exportedFilePath": "C:/Users/dell/Desktop/sw eng project/levels/frozen_cave",
+    "last.externalTilesetPath": "C:/Users/dell/Desktop/sw eng project/levels/cyberpunk/tsx files",
+    "last.imagePath": "C:/Users/dell/Desktop/sw eng project/levels/cyberpunk/adds and graffitis",
+    "map.height": 40,
+    "map.lastUsedExportFilter": "All Files (*)",
+    "map.lastUsedFormat": "tmx",
+    "map.width": 160,
+    "openFiles": [
+        "cyberpunk/cyberpunk.tmx",
+        "cyberpunk/tsx files/adds and graffitis.tsx"
+    ],
+    "project": "untitled.tiled-project",
+    "property.type": "float",
+    "recentFiles": [
+        "cyberpunk/cyberpunk.tmx",
+        "cyberpunk/tsx files/adds and graffitis.tsx",
+        "cyberpunk/tsx files/industrial zone props.tsx",
+        "village/village.tmx",
+        "frozen_cave/frozen_cave.tmx",
+        "cyberpunk/tsx files/residental area props.tsx",
+        "cyberpunk/tsx files/power station props.tsx",
+        "cyberpunk/tsx files/1' addition.tsx",
+        "cyberpunk/tsx files/bg5.tsx",
+        "cyberpunk/tsx files/bg4.tsx",
+        "cyberpunk/tsx files/bg3.tsx",
+        "cyberpunk/tsx files/bg2.tsx"
+    ],
+    "tileset.lastUsedFilter": "Tiled tileset files (*.tsx *.xml)",
+    "tileset.lastUsedFormat": "tsx",
+    "tileset.tileSize": {
+        "height": 32,
+        "width": 32
+    },
+    "tileset.type": 0
+}
