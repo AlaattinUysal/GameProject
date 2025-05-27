@@ -550,11 +550,7 @@ while running:
 
     for dusman in enemies:
         dusman.ciz(screen, game_state.camera_x, game_state.camera_y, game_state.zoom_factor)
-        hitbox_x = (dusman.hitbox.x - game_state.camera_x) * game_state.zoom_factor
-        hitbox_y = (dusman.hitbox.y - game_state.camera_y) * game_state.zoom_factor
-        hitbox_width = dusman.hitbox.width * game_state.zoom_factor
-        hitbox_height = dusman.hitbox.height * game_state.zoom_factor
-        pygame.draw.rect(screen, (255, 0, 0), (hitbox_x, hitbox_y, hitbox_width, hitbox_height), 2)
+        
 
     for dusman in enemies:
         print(f"Düşman: {dusman.__class__.__name__}, Animasyon: {dusman.mevcut_animasyon}, Kare: {dusman.kare_indeksi}, Animasyonlar: {list(dusman.animasyonlar.keys())}")
