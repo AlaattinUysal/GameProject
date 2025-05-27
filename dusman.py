@@ -145,13 +145,6 @@ class Dusman:
                 
                 ekran.blit(kare, (screen_x, screen_y))
                 
-                # Debug: Hitbox'ı çiz
-                hitbox_x = (self.hitbox.x - camera_x) * zoom_factor
-                hitbox_y = (self.hitbox.y - camera_y) * zoom_factor
-                hitbox_width = self.hitbox.width * zoom_factor
-                hitbox_height = self.hitbox.height * zoom_factor
-                pygame.draw.rect(ekran, (255, 0, 0), (hitbox_x, hitbox_y, hitbox_width, hitbox_height), 2)
-                
                 self.draw_health_bar(ekran, camera_x, camera_y,zoom_factor)
             else:
                 print(f"Çizim hatası: {self.__class__.__name__}")
