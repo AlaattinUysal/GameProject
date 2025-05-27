@@ -64,7 +64,7 @@ class Arrow(pygame.sprite.Sprite):
 class Samurai(pygame.sprite.Sprite):
     def __init__(self, walk_spritesheet, idle_spritesheet, jump_spritesheet, 
                  run_spritesheet, attack1_spritesheet, attack2_spritesheet, attack3_spritesheet, 
-                 elixir_spritesheet, hurt_spritesheet, death_spritesheet, shot_spritesheet, 
+                  hurt_spritesheet, death_spritesheet, shot_spritesheet, 
                  x, y, scale, speed):
         pygame.sprite.Sprite.__init__(self)
         # Mevcut __init__ içeriği
@@ -134,7 +134,6 @@ class Samurai(pygame.sprite.Sprite):
         # Mevcut animasyon yüklemeleri
         self.walk_frames = walk_spritesheet.get_animation_frames(128, 128, scale)
         self.idle_frames = idle_spritesheet.get_animation_frames(128, 128, scale)
-        self.elixir_frames = elixir_spritesheet.get_animation_frames(128, 128, scale)
         self.jump_frames = jump_spritesheet.get_animation_frames(128, 128, scale)
         self.run_frames = run_spritesheet.get_animation_frames(128, 128, scale)
         self.attack1_frames = attack1_spritesheet.get_animation_frames(128, 128, scale)[:-1]
@@ -296,22 +295,6 @@ class Samurai(pygame.sprite.Sprite):
             return
 
         self.update_counter = 0
-
-        
-         # İksir toplama animasyonu (hareket durumlarından bağımsız, yüksek öncelik)
-        if self.is_collecting_potion:
-            self.potion_update_counter += 1
-            if self.potion_update_counter >= self.potion_animation_speed:
-                self.potion_update_counter = 0
-                self.potion_frame_index += 1
-                if self.potion_frame_index >= len(self.elixir_frames):
-                    self.is_collecting_potion = False
-                    self.potion_frame_index = 0
-                    self.frame_index = 0
-                else:
-                    self.image = self.elixir_frames[self.potion_frame_index]
-                    self.frame_index = self.potion_frame_index
-            return
 
         # Tırmanma animasyonu
         if self.is_climbing:
