@@ -54,12 +54,7 @@ class Arrow(pygame.sprite.Sprite):
         if self.direction == -1:
             scaled_image = pygame.transform.flip(scaled_image, True, False)
         surface.blit(scaled_image, (screen_x, screen_y))
-        # Debug: Okun hitbox'ını çiz (yeşil çerçeve)
-        hitbox_x = screen_x
-        hitbox_y = screen_y
-        hitbox_width = self.rect.width * game_state.zoom_factor
-        hitbox_height = self.rect.height * game_state.zoom_factor
-        pygame.draw.rect(surface, (0, 255, 0), (hitbox_x, hitbox_y, hitbox_width, hitbox_height), 2)
+       
 
 class Samurai(pygame.sprite.Sprite):
     def __init__(self, walk_spritesheet, idle_spritesheet, jump_spritesheet, 
