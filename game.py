@@ -31,7 +31,6 @@ run_spritesheet = Spritesheet("player sprite sheets/Run.png")
 attack1_spritesheet = Spritesheet("player sprite sheets/Attack_1.png")
 attack2_spritesheet = Spritesheet("player sprite sheets/Attack_2.png")
 attack3_spritesheet = Spritesheet("player sprite sheets/Attack_3.png")
-elixir_spritesheet = Spritesheet("player sprite sheets/Elixir.png")
 shot_spritesheet = Spritesheet("player sprite sheets/Shot.png")
 hurt_spritesheet = Spritesheet("player sprite sheets/Hurt.png")
 death_spritesheet = Spritesheet("player sprite sheets/Dead.png")
@@ -87,7 +86,7 @@ player_spawn = find_spawn_point()
 print(f"Spawn noktası: {player_spawn}")
 player = Samurai(walk_spritesheet, idle_spritesheet, jump_spritesheet, 
                  run_spritesheet, attack1_spritesheet, attack2_spritesheet, attack3_spritesheet, 
-                 elixir_spritesheet, hurt_spritesheet, death_spritesheet, shot_spritesheet,
+                  hurt_spritesheet, death_spritesheet, shot_spritesheet,
                  player_spawn[0], player_spawn[1], 1, 3)
 player.on_ground = False
 player.y_velocity = 1
