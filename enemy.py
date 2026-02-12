@@ -65,14 +65,14 @@ class GameState:
             "cyberpunk": {
                 "npcs": [],  # Örnek: Yeni NPC eklenebilir
                 "enemies": [
-                    {"type": "NinjaMonk", "x": 900, "y": 1100, "scale": 1, "speed": 2, "range": 200},
-                    {"type": "NinjaMonk", "x": 1100, "y": 1100, "scale": 1, "speed": 2, "range": 200}
+                    {"type": "NinjaMonk", "x": 900, "y": 1100, "scale": 1, "speed": 2, "range": 300},
+                    {"type": "NinjaMonk", "x": 1100, "y": 1100, "scale": 1, "speed": 2, "range": 300}
                 ]
             },
             "lab": {
                 "npcs": [],  # Örnek: Yeni NPC eklenebilir
                 "enemies": [
-                    {"type": "NinjaMonk", "x": 1000, "y": 1200, "scale": 1, "speed": 2, "range": 200}
+                    {"type": "NinjaMonk", "x": 1000, "y": 1200, "scale": 1, "speed": 5, "range": 400}
                 ]
             }
         }
@@ -532,4 +532,5 @@ class Canavar(pygame.sprite.Sprite):
                 attack_y = (self.attack_hitbox.y - camera_y) * game_state.zoom_factor
                 attack_width = self.attack_hitbox.width * game_state.zoom_factor
                 attack_height = self.attack_hitbox.height * game_state.zoom_factor
+
                 pygame.draw.rect(surface, (255, 165, 0), (attack_x, attack_y, attack_width, attack_height), 2)
